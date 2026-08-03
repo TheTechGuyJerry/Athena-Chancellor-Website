@@ -1,11 +1,25 @@
-<div align="center">
+# Osita Chidoka website recreation
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+An independently implemented, responsive recreation of the public-facing Osita Chidoka website. It includes the homepage, About, Blog, The Canon archive, Unlock Naija, Mekaria Mentorship, Press Inquiry, legal pages, search/filter interactions, forms, and a cookie notice.
 
-  <h1>Built with AI Studio</h2>
+## Run locally
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+```bash
+npm install
+npm run dev
+```
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+Open the local address shown in the terminal.
 
-</div>
+## Production build
+
+```bash
+npm run build
+```
+
+## Integration points
+
+- Connect the subscription, mentorship, movement, press, and sign-in controls to your preferred backend.
+- Replace the demonstration legal text with approved policies before collecting public data.
+- The archive content is stored in `lib/essays.ts`.
+- Images are stored in `public/images` so the deployment does not depend on the reference site.

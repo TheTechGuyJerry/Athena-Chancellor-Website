@@ -1,0 +1,15 @@
+export type Essay = { year:number; title:string; month:string; category:string; summary:string };
+export const essays: Essay[] = [
+  {year:2026,title:"Governance as the Foundation for Africa's Future",month:"June 2026",category:"Development",summary:"A case for transparent, accountable institutions that make public decisions, spending, and performance easier to examine."},
+  {year:2026,title:"Ekulu at 70: How One School Tells the Nigerian Story of Decline and the Duty of Renewal",month:"May 2026",category:"Youth",summary:"A reflection on educational decline and the responsibility of each generation to renew the institutions it inherits."},
+  {year:2026,title:"Fragments of Time: My Foreign Service Years — A Book Review",month:"May 2026",category:"Politics",summary:"A review on public service, diplomacy, and the distance between national capacity and consistent follow-through."},
+  {year:2026,title:"Beyond Participation: Rebuilding Nigeria's Political Culture for a New Generation",month:"April 2026",category:"Politics",summary:"An examination of political belief, civic participation, and a new culture of purposeful improvement."},
+  {year:2026,title:"The Architecture of Career Ascent: Part 2 — The Trap of Busyness",month:"April 2026",category:"Leadership",summary:"Why activity is not the same as progress, and how professionals can turn disciplined effort into measurable impact."},
+  {year:2026,title:"The Architecture of Career Ascent",month:"April 2026",category:"Development",summary:"A practical essay on depth, sponsorship, responsibility, and building systems that outlast individual careers."},
+  {year:2026,title:"From Alibi to Agency: Re-Inventing the South-East Through Data, Discipline and Purpose",month:"January 2026",category:"Politics",summary:"A regional development agenda centred on data, education, infrastructure, cooperation, and accountable execution."},
+  {year:2025,title:"The Art and Practice of Influencing Policy",month:"December 2025",category:"Politics",summary:"A policy masterclass on technical credibility, political intelligence, and moral authority."},
+  {year:2025,title:"The Leadership Crisis in Africa: From Alibi to Agency",month:"October 2025",category:"Politics",summary:"A leadership philosophy that replaces excuses with preparation, discipline, and responsibility."},
+  {year:2025,title:"From Resources to Prosperity: The Role of the Physical Sciences in Managing Nigeria's Future",month:"October 2025",category:"Development",summary:"How science, knowledge, and institutions can transform natural resources into shared prosperity."},
+  {year:2025,title:"Instilling the Mekaria Spirit: The Role of Universities in Shaping Leaders for a New Age",month:"October 2025",category:"Youth",summary:"A convocation lecture on the role of universities in preparing purposeful leaders."},
+  {year:2025,title:"The Audacity to Transform: When Vision Meets Governance — Book Review",month:"January 2025",category:"Leadership",summary:"A review of the ideas, choices, and institutions that connect vision to effective governance."},
+];
