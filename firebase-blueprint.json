@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "essays": {
+      "title": "Essays & Speeches",
+      "description": "Public essays, speeches, and canonical writings",
+      "fields": {
+        "slug": { "type": "string", "description": "Unique URL slug" },
+        "title": { "type": "string", "description": "Title of the essay" },
+        "date": { "type": "string", "description": "Publication date" },
+        "summary": { "type": "string", "description": "Executive summary" },
+        "category": { "type": "string", "description": "Topic or category tag" },
+        "readingTime": { "type": "string", "description": "Estimated reading duration" },
+        "content": { "type": "array", "description": "Paragraphs of content" }
+      }
+    },
+    "dispatches": {
+      "title": "Field Dispatches",
+      "description": "Short field updates and news posts",
+      "fields": {
+        "id": { "type": "string", "description": "Dispatch ID" },
+        "title": { "type": "string", "description": "Title" },
+        "date": { "type": "string", "description": "Date of dispatch" },
+        "location": { "type": "string", "description": "Location tag" },
+        "excerpt": { "type": "string", "description": "Short excerpt" },
+        "fullContent": { "type": "string", "description": "Full text body" }
+      }
+    },
+    "inquiries": {
+      "title": "Contact Inquiries",
+      "description": "Official contact and speaking messages",
+      "fields": {
+        "id": { "type": "string", "description": "Inquiry ID" },
+        "name": { "type": "string", "description": "Sender name" },
+        "email": { "type": "string", "description": "Sender email" },
+        "organization": { "type": "string", "description": "Organization" },
+        "type": { "type": "string", "description": "Inquiry category" },
+        "message": { "type": "string", "description": "Message body" },
+        "status": { "type": "string", "description": "unread or read" },
+        "timestamp": { "type": "string", "description": "ISO timestamp" }
+      }
+    },
+    "subscribers": {
+      "title": "Newsletter Subscribers",
+      "description": "Subscribers list",
+      "fields": {
+        "email": { "type": "string", "description": "Subscriber email" },
+        "subscribedAt": { "type": "string", "description": "ISO timestamp" }
+      }
+    },
+    "settings": {
+      "title": "Site Settings",
+      "description": "Global CMS settings",
+      "fields": {
+        "siteTitle": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "adminEmail": { "type": "string" },
+        "adminPasswordRaw": { "type": "string" },
+        "maintenanceMode": { "type": "boolean" }
+      }
+    }
+  }
+}

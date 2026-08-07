@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 const institutions = [
   ["The Canon", "Essays and long-form writing on governance, leadership, and institutional development.", "/collections", "BROWSE WRITING"],
@@ -15,13 +15,15 @@ const roles = [
   ["Chairman, Governing Board", "Nigerian Research and Education Network (NgREN)"],
 ];
 
-export default function Home() {
+export function HomePage() {
   return (
     <main>
       <section className="hero wrap">
         <p className="eyebrow">Public servant · Writer · Institution builder</p>
         <h1>Osita Chidoka</h1>
-        <p className="hero-copy">I write about governance, leadership, and the patient work of building institutions—drawing on public service, policy engagement, and lived experience.</p>
+        <p className="hero-copy">
+          I write about governance, leadership, and the patient work of building institutions—drawing on public service, policy engagement, and lived experience.
+        </p>
         <img className="hero-image" src="/images/osita-conference.jpg" alt="Osita Chidoka speaking at a university event" />
         <article className="featured">
           <div>
@@ -31,7 +33,7 @@ export default function Home() {
           <div>
             <h3>Re-Inventing the South-East Through Data, Discipline and Purpose</h3>
             <p>A case for structured ambition, stronger institutions, and purposeful regional development.</p>
-            <Link className="text-link" href="/collections">Read essay <span>→</span></Link>
+            <Link className="text-link" to="/collections">Read essay <span>→</span></Link>
           </div>
         </article>
       </section>
@@ -49,18 +51,24 @@ export default function Home() {
               <h3>{title}</h3>
               <div>
                 <p>{body}</p>
-                <a className="text-link" href={href}>{cta} <span>→</span></a>
+                {href.startsWith("http") ? (
+                  <a className="text-link" href={href} target="_blank" rel="noopener noreferrer">{cta} <span>→</span></a>
+                ) : (
+                  <Link className="text-link" to={href}>{cta} <span>→</span></Link>
+                )}
               </div>
             </article>
           ))}
         </div>
         <div className="work-action">
-          <Link className="underline-link" href="/about">VIEW INSTITUTIONS <span>→</span></Link>
+          <Link className="underline-link" to="/about">VIEW INSTITUTIONS <span>→</span></Link>
         </div>
       </section>
 
       <section className="manifesto">
-        <div className="wrap"><p>This platform is not commentary. It is an attempt to think clearly about difficult problems—and to contribute, where possible, to their solution.</p></div>
+        <div className="wrap">
+          <p>This platform is not commentary. It is an attempt to think clearly about difficult problems—and to contribute, where possible, to their solution.</p>
+        </div>
       </section>
 
       <section className="section wrap field-section">
@@ -86,7 +94,7 @@ export default function Home() {
       <section className="dispatch">
         <div className="wrap dispatch-inner">
           <p>Receive new essays directly.</p>
-          <Link className="light-button" href="/blog">Subscribe to the dispatch</Link>
+          <Link className="light-button" to="/blog">Subscribe to the dispatch</Link>
         </div>
       </section>
 
@@ -94,7 +102,10 @@ export default function Home() {
         <p className="eyebrow">Connect</p>
         <h2>Let&apos;s build Nigeria<br/><em>together.</em></h2>
         <p>For media inquiries, speaking invitations, or mentorship enquiries.</p>
-        <div className="button-row"><Link className="gold-button" href="/pressinquiry">Press inquiry</Link><a className="outline-button" href="mailto:enquiries@ositachidoka.com">Email directly</a></div>
+        <div className="button-row">
+          <Link className="gold-button" to="/pressinquiry">Press inquiry</Link>
+          <a className="outline-button" href="mailto:enquiries@ositachidoka.com">Email directly</a>
+        </div>
       </section>
     </main>
   );

@@ -21,7 +21,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
         <div className={`header-tools ${menu ? "open" : ""}`}>
           <nav>{nav.map(([label, href]) => <a key={href} className={path === href || (href === "/home" && path === "/") ? "active" : ""} href={href}>{label}</a>)}</nav>
           <form className="header-search" onSubmit={submitSearch}><span>⌕</span><input value={search} onChange={e=>setSearch(e.target.value)} aria-label="Search" placeholder="Search…" /></form>
-          <button className="signin" onClick={()=>alert("Sign-in can be connected to your preferred authentication provider.")}>Sign In</button>
+          <a className="signin" href="/admin">CMS Admin</a>
         </div>
       </div>
     </header>
@@ -35,7 +35,7 @@ function Footer() {
   return <footer><div className="wrap footer-grid">
     <div><a className="brand footer-brand" href="/home">Osita Chidoka</a><p>Public servant. Writer. Institution builder.</p><div className="socials"><a href="https://web.facebook.com/ositadinmabchidoka" aria-label="Facebook">f</a><a href="https://x.com/osita_chidoka" aria-label="X">𝕏</a><a href="https://www.instagram.com/osita_chidoka/" aria-label="Instagram">◎</a><a href="https://www.youtube.com/@ositachidokaikeobosi7562" aria-label="YouTube">▶</a></div></div>
     <div><span className="footer-title">Writing</span><a href="/collections">The Canon</a><a href="/collections?category=development">Governance</a><a href="/collections?category=leadership">Leadership</a><a href="/collections?category=politics">Politics</a></div>
-    <div><span className="footer-title">More</span><a href="/about">About</a><a href="/unlocknaija">Unlock Naija</a><a href="/mekariamentorship">Mekaria Mentorship</a><a href="/pressinquiry">Press Inquiry</a></div>
+    <div><span className="footer-title">More</span><a href="/about">About</a><a href="/unlocknaija">Unlock Naija</a><a href="/mekariamentorship">Mekaria Mentorship</a><a href="/pressinquiry">Press Inquiry</a><a href="/admin">Admin CMS</a></div>
     <div><a className="footer-email" href="mailto:enquiries@ositachidoka.com">enquiries@ositachidoka.com</a></div>
-  </div><div className="wrap footer-bottom"><span>© 2026 Osita Chidoka. All rights reserved.</span><div><a href="/privacypolicy">Privacy Policy</a><a href="/termsofservice">Terms of Service</a><a href="/cookiespolicy">Cookies Policy</a></div></div></footer>;
+  </div><div className="wrap footer-bottom"><span>© 2026 Osita Chidoka. All rights reserved.</span><div><a href="/privacypolicy">Privacy Policy</a><a href="/termsofservice">Terms of Service</a><a href="/cookiespolicy">Cookies Policy</a><a href="/admin">CMS Backend</a></div></div></footer>;
 }
