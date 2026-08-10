@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { useCMSData } from "../lib/cms-store";
+import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { EssayReader } from "../components/EssayReader";
 
@@ -8,7 +8,6 @@ export function EssayDetailPage() {
   const { slug: pathSlug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const querySlug = searchParams.get("slug");
-  const cmsData = useCMSData();
   
   const currentSlug = pathSlug || querySlug || "";
 
@@ -17,7 +16,7 @@ export function EssayDetailPage() {
   }, [currentSlug]);
 
   const essay = useMemo<Essay | null>(() => {
-    const data = cmsData;
+    const data = getCMSData();
     if (!currentSlug) return data.essays[0] || null;
 
     // 1. Direct match
@@ -34,7 +33,7 @@ export function EssayDetailPage() {
     if (found) return found;
 
     return data.essays[0] || null;
-  }, [currentSlug, cmsData]);
+  }, [currentSlug]);
 
   if (!essay) {
     return (

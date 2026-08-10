@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { CMSContentEditor } from "../components/CMSContentEditor";
 import {
   getCMSData,
@@ -112,7 +112,7 @@ export function AdminPage() {
     reader.readAsDataURL(file);
   };
 
-  // Load store data
+  // Load store data synchronously
   const loadData = () => {
     const data = getCMSData();
     setEssays(data.essays);
@@ -121,20 +121,6 @@ export function AdminPage() {
     setSubscribers(data.subscribers);
     setSettings(data.settings);
   };
-
-  useEffect(() => {
-    const handleCMSUpdated = () => {
-      const data = getCMSData();
-      setEssays([...data.essays]);
-      setDispatches([...data.dispatches]);
-      setInquiries([...data.inquiries]);
-      setSubscribers([...data.subscribers]);
-      setSettings({ ...data.settings });
-    };
-
-    window.addEventListener("osita_cms_updated", handleCMSUpdated);
-    return () => window.removeEventListener("osita_cms_updated", handleCMSUpdated);
-  }, []);
 
   // INSTANT CANCEL BUTTON HANDLER - Completely Synchronous State Reset
   const handleCancelAndShowLogin = () => {
@@ -1415,7 +1401,7 @@ export function AdminPage() {
               <span>⚠️</span> Confirm Deletion
             </h3>
             <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", marginBottom: "24px" }}>
-              Are you sure you want to delete <strong>&ldquo;{deleteModal.title}&rdquo;</strong>? This item will be permanently removed.
+              Are you sure you want to delete <strong>"{deleteModal.title}"</strong>? This item will be permanently removed.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
               <button

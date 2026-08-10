@@ -1,9 +1,11 @@
 import { useState, useEffect, FormEvent } from "react";
-import { useCMSData, addCMSSubscriber, DispatchPost } from "../lib/cms-store";
+import { getCMSData, addCMSSubscriber, DispatchPost } from "../lib/cms-store";
 
 export function BlogPage() {
-  const cmsData = useCMSData();
-  const posts = cmsData.dispatches.filter((p) => p.published !== false);
+  const [posts] = useState<DispatchPost[]>(() => {
+    const data = getCMSData();
+    return data.dispatches.filter((p) => p.published !== false);
+  });
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [subEmail, setSubEmail] = useState("");
