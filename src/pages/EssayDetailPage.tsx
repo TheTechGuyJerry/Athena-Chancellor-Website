@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { getCMSData } from "../lib/cms-store";
+import { useCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { EssayReader } from "../components/EssayReader";
 
@@ -8,6 +8,7 @@ export function EssayDetailPage() {
   const { slug: pathSlug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const querySlug = searchParams.get("slug");
+  const cmsData = useCMSData();
   
   const currentSlug = pathSlug || querySlug || "";
 
@@ -16,7 +17,7 @@ export function EssayDetailPage() {
   }, [currentSlug]);
 
   const essay = useMemo<Essay | null>(() => {
-    const data = getCMSData();
+    const data = cmsData;
     if (!currentSlug) return data.essays[0] || null;
 
     // 1. Direct match
@@ -33,7 +34,7 @@ export function EssayDetailPage() {
     if (found) return found;
 
     return data.essays[0] || null;
-  }, [currentSlug]);
+  }, [currentSlug, cmsData]);
 
   if (!essay) {
     return (
@@ -48,7 +49,7 @@ export function EssayDetailPage() {
   }
 
   return (
-    <main style={{ paddingBlock: "24px 60px", background: "var(--paper)" }}>
+    <main style={{ paddingBlock: "32px 80px", background: "#08090d", minHeight: "100vh" }}>
       <div className="wrap-wide">
         <EssayReader essay={essay} isModal={false} />
       </div>

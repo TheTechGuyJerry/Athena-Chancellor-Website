@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { CMSContentEditor } from "../components/CMSContentEditor";
 import {
   getCMSData,
@@ -52,25 +52,67 @@ export function AdminPage() {
 
   // Modals & Editors
   const [isEssayModalOpen, setIsEssayModalOpen] = useState(false);
-  const [editingEssay, setEditingEssay] = useState<Partial<Essay> | null>(null);
+  const [editingEssay, setEditingEssay] = useState<(Partial<Essay> & { _originalSlug?: string }) | null>(null);
   const [essayContentText, setEssayContentText] = useState("");
   const [essayEditorMode, setEssayEditorMode] = useState<"text" | "html">("text");
   const [essayPdfUrl, setEssayPdfUrl] = useState<string>("#");
   const [essayPdfFileName, setEssayPdfFileName] = useState<string>("");
 
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
-  const [editingDispatch, setEditingDispatch] = useState<Partial<DispatchPost> | null>(null);
+  const [editingDispatch, setEditingDispatch] = useState<(Partial<DispatchPost> & { _originalId?: string }) | null>(null);
   const [dispatchContentText, setDispatchContentText] = useState("");
   const [dispatchEditorMode, setDispatchEditorMode] = useState<"text" | "html">("text");
   const [dispatchPdfUrl, setDispatchPdfUrl] = useState<string>("#");
   const [dispatchPdfFileName, setDispatchPdfFileName] = useState<string>("");
+
+  const [deleteModal, setDeleteModal] = useState<{
+    type: "essay" | "dispatch" | "inquiry";
+    idOrSlug: string;
+    title: string;
+  } | null>(null);
 
   const [passMsg, setPassMsg] = useState("");
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [settingsMsg, setSettingsMsg] = useState("");
 
-  // Load store data synchronously
+  const compressImage = (file: File, callback: (compressedUrl: string) => void) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1000;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          callback(canvas.toDataURL("image/jpeg", 0.75));
+        } else {
+          callback(dataUrl);
+        }
+      };
+      img.onerror = () => callback(dataUrl);
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Load store data
   const loadData = () => {
     const data = getCMSData();
     setEssays(data.essays);
@@ -79,6 +121,20 @@ export function AdminPage() {
     setSubscribers(data.subscribers);
     setSettings(data.settings);
   };
+
+  useEffect(() => {
+    const handleCMSUpdated = () => {
+      const data = getCMSData();
+      setEssays([...data.essays]);
+      setDispatches([...data.dispatches]);
+      setInquiries([...data.inquiries]);
+      setSubscribers([...data.subscribers]);
+      setSettings({ ...data.settings });
+    };
+
+    window.addEventListener("osita_cms_updated", handleCMSUpdated);
+    return () => window.removeEventListener("osita_cms_updated", handleCMSUpdated);
+  }, []);
 
   // INSTANT CANCEL BUTTON HANDLER - Completely Synchronous State Reset
   const handleCancelAndShowLogin = () => {
@@ -146,6 +202,8 @@ export function AdminPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "");
 
+    const originalSlug = editingEssay._originalSlug || slug;
+
     const newEssay: Essay = {
       slug,
       year: Number(editingEssay.year) || new Date().getFullYear(),
@@ -159,9 +217,15 @@ export function AdminPage() {
       pdfUrl: essayPdfUrl || editingEssay.pdfUrl || "#",
       pdfFileName: essayPdfFileName || editingEssay.pdfFileName || "",
       isHtmlUpload: essayEditorMode === "html",
+      imageUrl: editingEssay.imageUrl || "",
+      subtitle: editingEssay.subtitle || "",
+      presentationType: editingEssay.presentationType || "",
+      authorTitle: editingEssay.authorTitle || "",
+      institution: editingEssay.institution || "",
+      location: editingEssay.location || "",
     };
 
-    const existingIndex = essays.findIndex((e) => e.slug === slug);
+    const existingIndex = essays.findIndex((e) => e.slug === originalSlug || e.slug === slug);
     let updatedList: Essay[];
     if (existingIndex >= 0) {
       updatedList = [...essays];
@@ -171,16 +235,13 @@ export function AdminPage() {
     }
 
     const saved = updateCMSEssays(updatedList);
-    setEssays(saved);
+    setEssays([...saved]);
     setIsEssayModalOpen(false);
     setEditingEssay(null);
   };
 
-  const handleDeleteEssay = (slug: string) => {
-    if (!confirm("Are you sure you want to delete this essay?")) return;
-    const updatedList = essays.filter((e) => e.slug !== slug);
-    const saved = updateCMSEssays(updatedList);
-    setEssays(saved);
+  const handleDeleteEssay = (slug: string, title: string) => {
+    setDeleteModal({ type: "essay", idOrSlug: slug, title });
   };
 
   // --- DISPATCH HANDLERS ---
@@ -193,6 +254,7 @@ export function AdminPage() {
       : dispatchContentText.split("\n\n").filter(Boolean);
 
     const id = editingDispatch.id || `disp-${Date.now()}`;
+    const originalId = editingDispatch._originalId || id;
     const slug =
       editingDispatch.slug ||
       editingDispatch.title
@@ -214,9 +276,10 @@ export function AdminPage() {
       pdfUrl: dispatchPdfUrl || editingDispatch.pdfUrl || "#",
       pdfFileName: dispatchPdfFileName || editingDispatch.pdfFileName || "",
       isHtmlUpload: dispatchEditorMode === "html",
+      imageUrl: editingDispatch.imageUrl || "",
     };
 
-    const existingIndex = dispatches.findIndex((d) => d.id === id);
+    const existingIndex = dispatches.findIndex((d) => d.id === originalId || d.id === id);
     let updatedList: DispatchPost[];
     if (existingIndex >= 0) {
       updatedList = [...dispatches];
@@ -226,16 +289,13 @@ export function AdminPage() {
     }
 
     const saved = updateCMSDispatches(updatedList);
-    setDispatches(saved);
+    setDispatches([...saved]);
     setIsDispatchModalOpen(false);
     setEditingDispatch(null);
   };
 
-  const handleDeleteDispatch = (id: string) => {
-    if (!confirm("Delete this blog dispatch?")) return;
-    const updatedList = dispatches.filter((d) => d.id !== id);
-    const saved = updateCMSDispatches(updatedList);
-    setDispatches(saved);
+  const handleDeleteDispatch = (id: string, title: string) => {
+    setDeleteModal({ type: "dispatch", idOrSlug: id, title });
   };
 
   // --- INQUIRY HANDLERS ---
@@ -244,10 +304,25 @@ export function AdminPage() {
     setInquiries([...updated]);
   };
 
-  const handleDeleteInquiryItem = (id: string) => {
-    if (!confirm("Delete this press inquiry?")) return;
-    const updated = deleteInquiry(id);
-    setInquiries([...updated]);
+  const handleDeleteInquiryItem = (id: string, subject: string) => {
+    setDeleteModal({ type: "inquiry", idOrSlug: id, title: subject });
+  };
+
+  const confirmDeleteAction = () => {
+    if (!deleteModal) return;
+    if (deleteModal.type === "essay") {
+      const updatedList = essays.filter((e) => e.slug !== deleteModal.idOrSlug);
+      const saved = updateCMSEssays(updatedList);
+      setEssays([...saved]);
+    } else if (deleteModal.type === "dispatch") {
+      const updatedList = dispatches.filter((d) => d.id !== deleteModal.idOrSlug);
+      const saved = updateCMSDispatches(updatedList);
+      setDispatches([...saved]);
+    } else if (deleteModal.type === "inquiry") {
+      const updated = deleteInquiry(deleteModal.idOrSlug);
+      setInquiries([...updated]);
+    }
+    setDeleteModal(null);
   };
 
   // --- SETTINGS HANDLER ---
@@ -660,9 +735,18 @@ export function AdminPage() {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: "12px", marginBottom: "8px", fontSize: "12px" }}>
+                    <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "8px", fontSize: "12px" }}>
                       <span style={{ color: "var(--gold)", fontWeight: "bold" }}>{essay.category}</span>
                       <span style={{ color: "var(--muted)" }}>{essay.month} ({essay.year})</span>
+                      {essay.imageUrl ? (
+                        <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "4px", fontWeight: "bold", fontSize: "11px" }}>
+                          🖼️ Cover Image Attached
+                        </span>
+                      ) : (
+                        <span style={{ background: "#f1f5f9", color: "#64748b", padding: "2px 8px", borderRadius: "4px", fontSize: "11px" }}>
+                          No Cover Image
+                        </span>
+                      )}
                     </div>
                     <h3 style={{ fontFamily: "Georgia, serif", fontSize: "20px", margin: "0 0 8px 0" }}>{essay.title}</h3>
                     <p style={{ color: "var(--muted)", fontSize: "14px", margin: "0 0 12px 0", lineHeight: "1.5" }}>{essay.summary}</p>
@@ -672,10 +756,16 @@ export function AdminPage() {
                     </div>
                   </div>
 
+                  {essay.imageUrl && (
+                    <div style={{ width: "80px", height: "80px", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--line)", flexShrink: 0 }}>
+                      <img src={essay.imageUrl} alt={essay.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", gap: "10px" }}>
                     <button
                       onClick={() => {
-                        setEditingEssay(essay);
+                        setEditingEssay({ ...essay, _originalSlug: essay.slug });
                         setEssayContentText(essay.content.join("\n\n"));
                         setEssayEditorMode(essay.isHtmlUpload ? "html" : "text");
                         setEssayPdfUrl(essay.pdfUrl || "#");
@@ -694,7 +784,7 @@ export function AdminPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteEssay(essay.slug)}
+                      onClick={() => handleDeleteEssay(essay.slug, essay.title)}
                       style={{
                         padding: "8px 14px",
                         border: "1px solid #fecaca",
@@ -776,7 +866,7 @@ export function AdminPage() {
                   <div style={{ display: "flex", gap: "10px" }}>
                     <button
                       onClick={() => {
-                        setEditingDispatch(disp);
+                        setEditingDispatch({ ...disp, _originalId: disp.id });
                         setDispatchContentText(disp.content.join("\n\n"));
                         setDispatchEditorMode(disp.isHtmlUpload ? "html" : "text");
                         setDispatchPdfUrl(disp.pdfUrl || "#");
@@ -795,7 +885,7 @@ export function AdminPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteDispatch(disp.id)}
+                      onClick={() => handleDeleteDispatch(disp.id, disp.title)}
                       style={{
                         padding: "8px 14px",
                         border: "1px solid #fecaca",
@@ -879,7 +969,7 @@ export function AdminPage() {
                       </div>
 
                       <button
-                        onClick={() => handleDeleteInquiryItem(inq.id)}
+                        onClick={() => handleDeleteInquiryItem(inq.id, inq.subject || inq.name || "Press Inquiry")}
                         style={{
                           background: "none",
                           border: 0,
@@ -1073,6 +1163,143 @@ export function AdminPage() {
                 />
               </div>
 
+              {/* First Page / Cover Graphic Accommodation Section */}
+              <div style={{ background: "#fbf9f5", border: "1px solid #e8e0d0", borderRadius: "8px", padding: "18px", marginBottom: "20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", color: "var(--gold)", letterSpacing: ".05em" }}>
+                    🖼️ First Page / Cover Graphic Accommodation
+                  </span>
+                  {editingEssay?.imageUrl && (
+                    <span style={{ fontSize: "11px", color: "#15803d", background: "#dcfce7", padding: "2px 8px", borderRadius: "4px", fontWeight: "bold" }}>
+                      ✓ Cover Image Attached
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "4px" }}>
+                    First Page Cover Image URL or Local Photo Upload
+                  </label>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
+                    <input
+                      type="text"
+                      placeholder="https://... or /images/osita-speaking.jpg"
+                      value={editingEssay?.imageUrl || ""}
+                      onChange={(e) => setEditingEssay({ ...editingEssay, imageUrl: e.target.value })}
+                      style={{ flex: 1, padding: "9px 12px", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "13px" }}
+                    />
+                    <label
+                      style={{
+                        padding: "9px 14px",
+                        background: "#121528",
+                        color: "#fff",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      📷 Upload Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          compressImage(file, (compressedUrl) => {
+                            setEditingEssay((prev) => prev ? { ...prev, imageUrl: compressedUrl } : null);
+                          });
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Preset Sample Images */}
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", fontSize: "11px", color: "var(--muted)" }}>
+                    <span>Quick Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingEssay({ ...editingEssay, imageUrl: "/images/osita-speaking.jpg" })}
+                      style={{ background: "#fff", border: "1px solid #ccc", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}
+                    >
+                      Default Keynote Photo
+                    </button>
+                    {editingEssay?.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingEssay({ ...editingEssay, imageUrl: "" })}
+                        style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}
+                      >
+                        Remove Image
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Image Preview */}
+                  {editingEssay?.imageUrl && (
+                    <div style={{ marginTop: "12px", borderRadius: "6px", overflow: "hidden", maxHeight: "140px", border: "1px solid #d4af37", background: "#000" }}>
+                      <img src={editingEssay.imageUrl} alt="Cover Preview" style={{ width: "100%", height: "140px", objectFit: "cover", objectPosition: "center 20%" }} />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>
+                      Presentation Type Tag
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="LEAD PAPER PRESENTATION"
+                      value={editingEssay?.presentationType || ""}
+                      onChange={(e) => setEditingEssay({ ...editingEssay, presentationType: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "13px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>
+                      Subtitle / Theme
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Paper or Lecture Theme Subheading"
+                      value={editingEssay?.subtitle || ""}
+                      onChange={(e) => setEditingEssay({ ...editingEssay, subtitle: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "13px" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>
+                      Author Name & Honors
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Osita Chidoka, OFR, NPOM"
+                      value={editingEssay?.authorTitle || ""}
+                      onChange={(e) => setEditingEssay({ ...editingEssay, authorTitle: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "13px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", color: "#555", marginBottom: "4px" }}>
+                      Institution & Location
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nnamdi Azikiwe University, Awka • June 2026"
+                      value={editingEssay?.location || ""}
+                      onChange={(e) => setEditingEssay({ ...editingEssay, location: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "13px" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ marginBottom: "20px" }}>
                 <CMSContentEditor
                   value={essayContentText}
@@ -1176,6 +1403,36 @@ export function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM NON-BLOCKING DELETE CONFIRMATION MODAL */}
+      {deleteModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center", padding: "20px" }}>
+          <div style={{ background: "#fff", width: "100%", maxWidth: "460px", borderRadius: "12px", padding: "28px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3)" }}>
+            <h3 style={{ fontFamily: "Georgia, serif", fontSize: "20px", marginTop: 0, marginBottom: "12px", color: "#991b1b", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>⚠️</span> Confirm Deletion
+            </h3>
+            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", marginBottom: "24px" }}>
+              Are you sure you want to delete <strong>&ldquo;{deleteModal.title}&rdquo;</strong>? This item will be permanently removed.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setDeleteModal(null)}
+                style={{ padding: "10px 18px", border: "1px solid var(--line)", background: "#fff", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAction}
+                style={{ padding: "10px 18px", border: "none", background: "#dc2626", color: "#fff", fontWeight: "bold", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}
+              >
+                Delete Permanently
+              </button>
+            </div>
           </div>
         </div>
       )}

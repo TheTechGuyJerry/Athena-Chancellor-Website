@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getCMSData } from "../lib/cms-store";
-import { Essay } from "../lib/essays";
+import { useCMSData } from "../lib/cms-store";
 import { Archive } from "../components/Archive";
 
 export function CollectionsPage() {
-  const [essays] = useState<Essay[]>(() => {
-    const data = getCMSData();
-    return data.essays;
-  });
+  const cmsData = useCMSData();
+  const essays = cmsData.essays;
   const [searchParams] = useSearchParams();
   const search = searchParams.get("search") || "";
 

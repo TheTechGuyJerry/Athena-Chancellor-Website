@@ -85,16 +85,24 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
         </div>
       </div>
 
+      {/* Featured Cover Image or First Page Graphic in Full Display */}
+      {essay.imageUrl && (
+        <div className="dark-reader-cover-card">
+          <div className="dark-reader-cover-photo-container">
+            <img src={essay.imageUrl} alt={essay.title} className="dark-reader-cover-photo" />
+          </div>
+        </div>
+      )}
+
       {/* Header Info */}
       <div className="dark-reader-header">
-        <h1 className="dark-reader-title">{essay.title}</h1>
-        <p className="dark-reader-date">Published on {essay.month}</p>
-
-        {/* Engagement Stats */}
-        <div className="dark-reader-stats">
-          <span>👁 {essay.views || 3}</span>
-          <span>💬 0</span>
-          <span>📥 {essay.downloads || 0}</span>
+        <div className="dark-reader-meta-row">
+          <span className="dark-reader-date-tag">Published on {essay.month}</span>
+          <div className="dark-reader-stats">
+            <span>👁 {essay.views || 48} views</span>
+            <span>💬 0 comments</span>
+            <span>📥 {essay.downloads || 12} downloads</span>
+          </div>
         </div>
 
         {/* Lead Quote Callout */}
@@ -115,7 +123,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
           }
           if (paragraph.startsWith("### ")) {
             return (
-              <h3 key={index} style={{ color: "#38bdf8", marginTop: "24px", marginBottom: "12px", fontFamily: "Georgia, serif" }}>
+              <h3 key={index} style={{ color: "#d4af37", marginTop: "32px", marginBottom: "16px", fontFamily: "Georgia, serif", fontSize: "22px" }}>
                 {paragraph.replace("### ", "")}
               </h3>
             );
@@ -135,11 +143,25 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
               </p>
             );
           }
+
+          // Check if paragraph is numbered list item e.g. "1. World Bank..."
+          const matchNumber = paragraph.match(/^(\d+)\.\s+([\s\S]+)/);
+          if (matchNumber) {
+            const num = matchNumber[1];
+            const text = matchNumber[2];
+            return (
+              <div key={index} className="dark-reader-endnote-item">
+                <span className="endnote-number">{num}.</span>
+                <span className="endnote-text">{text}</span>
+              </div>
+            );
+          }
+
           if (/<[a-z][\s\S]*>/i.test(paragraph)) {
             return (
               <div
                 key={index}
-                style={{ marginBottom: "24px", lineHeight: "1.8" }}
+                className="dark-reader-html-block"
                 dangerouslySetInnerHTML={{ __html: paragraph }}
               />
             );

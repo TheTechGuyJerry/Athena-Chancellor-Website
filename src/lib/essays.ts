@@ -11,6 +11,12 @@ export type Essay = {
   pdfUrl?: string;
   pdfFileName?: string;
   isHtmlUpload?: boolean;
+  imageUrl?: string;
+  subtitle?: string;
+  presentationType?: string;
+  authorTitle?: string;
+  institution?: string;
+  location?: string;
 };
 
 export const essays: Essay[] = [
@@ -24,6 +30,12 @@ export const essays: Essay[] = [
     views: 142,
     downloads: 38,
     pdfUrl: "#",
+    imageUrl: "/images/osita-speaking.jpg",
+    presentationType: "KEYNOTE ADDRESS",
+    subtitle: "28th Wole Soyinka Lecture & NAS Martyrs' Day Inauguration",
+    authorTitle: "Osita Chidoka, OFR, NPOM",
+    institution: "Athena Centre for Policy and Leadership",
+    location: "Port Harcourt • July 2026",
     content: [
       "Keynote address delivered at the 28th Wole Soyinka Lecture and inauguration of NAS Martyrs' Day, Port Harcourt.",
       "The state is not merely a collection of administrative machinery, nor is it simply a flag, a constitution, or a treasury. In its highest expression, the state is a moral agreement among free citizens to organize their collective existence around principles of justice, security, and mutual obligation.",
@@ -33,21 +45,71 @@ export const essays: Essay[] = [
     ]
   },
   {
-    slug: "governance-foundation-africa-future",
+    slug: "governance-as-the-foundation-for-africa-future",
     year: 2026,
     title: "Governance as the Foundation for Africa's Future",
     month: "June 2026",
     category: "DEVELOPMENT",
-    summary: "A lead paper delivered at Nnamdi Azikiwe University arguing that Africa's growth will become real development only when public institutions earn trust through transparency, accountability and visible delivery. It calls for transparent, accountable institutions that make public decisions, spending, and performance easier to examine.",
+    summary: "A lead paper delivered at Nnamdi Azikiwe University arguing that Africa's growth will become real development only when public institutions earn trust through transparency, accountability and visible delivery. It calls for governments to make decisions, public money and performance audible.",
     views: 98,
     downloads: 24,
     pdfUrl: "#",
+    imageUrl: "/images/osita-university.jpg",
+    presentationType: "LEAD PAPER PRESENTATION",
+    subtitle: "Building Institutions That Convert Growth into Development",
+    authorTitle: "Osita Chidoka, OFR, NPOM",
+    institution: "Chancellor, Athena Centre for Policy and Leadership",
+    location: "Nnamdi Azikiwe University, Awka • 17 June 2026",
     content: [
-      "Lead paper delivered at the Public Policy Symposium, Nnamdi Azikiwe University, Awka.",
-      "Economic statistics and GDP expansion numbers often obscure a fundamental reality: without institutional capability, economic growth produces concentrated wealth alongside general vulnerability. Growth without governance is a fragile edifice.",
-      "In many African nations, public expenditure remains shrouded in administrative obscurity. Decisions regarding resource allocation, infrastructure awards, and civil service recruitment are too often conducted far from public scrutiny. This lack of transparency undermines investor confidence and fractures the social contract.",
-      "We must transition from discretionary governance to rule-based systems. A rule-based administration relies on automated processes, open procurement portals, independent audit mechanisms, and meritocratic human resource management.",
-      "Africa's young population demands an environment where talent, rather than political patronage, determines outcomes. When governance becomes predictable and fair, domestic innovation flourishes and international capital finds a secure harbor."
+      "Protocols.",
+      "Vice Chancellor, Dean of the Faculty of Management Sciences, Head of the Department of Accountancy, distinguished faculty colleagues, members of the faculty, and the students in whose hands this country will so soon, sooner than they think, inherit: I thank you for the honour of this invitation, and for the award you have chosen to confer on me today.",
+      "Permit me a word about that award, because the subject of this lecture demands it. Over the years, I have become careful about awards, not because recognition is wrong, but because a country in need of stronger institutions must not confuse applause with achievement. So, I receive this honor not as a verdict on a career, but as a charge to keep building. An award for institution building does not close a chapter. It commissions more work. And there is a great deal of work still to do.",
+      "## A shrine, and a question I have carried for twenty years",
+      "Let me begin not with a statistic but with a story, one we have been turning over in my mind for more than twenty years.",
+      "In 2004, I was an exchange programme officer at Oxford when the Ogwugwu story broke. A shrine here in our own Anambra State, Ogwugwu Okija, was found to hold the remains of dozens of people, and the country recoiled in shame. A classmate, a South African, asked me, with uncomfortable evidence, that Africa could not develop, that the shrine was proof of our backwardness. As the only African in the room, I defended Nigeria with all the optimism of a young reformer.",
+      "But Okija forced me to think more carefully, and what I concluded then is the foundation of what I want to say to you today.",
+      "The scandal of the Okija episode was never really about the corpses. Its true significance was that a largely Christian, highly educated society still trusted the enforcement of a shrine more than the enforcement of the state. Walk through Onitsha market and watch traders take goods from one another's shops without a written contract, settling net accounts on trust alone. That trust was never secured by the police or the courts. It was secured by Ogwugwu, by the certainty of a sanction that everyone believed would fall. The shrine was not superstition standing in the way of a modern economy. The shrine was the legal system that the modern economy had failed to provide.",
+      "That is the lesson I carried out of Oxford, and it has only deepened since. When formal institutions cannot enforce their own rules, loyalty does not disappear. It migrates. It migrates to whatever can enforce — to the shrine, to the strongman, to the vigilante, to the religious authority, to the ethnic association. The state is not a catastrophic event. Citizens quietly move on and abandon the state without ceremony.",
+      "I have spent the two decades since inside the machinery of the Nigerian state: as Corps Marshal of the Federal Road Safety Corps, as Minister of Aviation, in the corridors of the Presidency. I have seen, from the inside, both what our public institutions can do when they are given purpose, and how quickly they become when they lose it. And I have arrived at a conviction I want to place at the centre of this lecture.",
+      "Africa's future, is before it is anything else, a trust question. Trust is not a soft political value to be praised at conferences and forgotten by Monday morning. Trust is infrastructure. It is as real and as load-bearing as a bridge. It decides whether citizens pay taxes, whether business managers keep capital, and whether reform endures after the reformer leaves. Where that infrastructure is sound, growth becomes development. Where it crumbles, citizens move quietly on and abandon the state without ceremony.",
+      "## Growth without confidence",
+      "Let us be clear about the numbers. The World Bank projects Sub-Saharan Africa's growth to rise to about four per cent this year. Four per cent growth is desirable, but a continent can grow on a spreadsheet while its citizens lose their ground. Growth, by itself, is a headcount metric. It measures transaction volume, not institutional quality or human welfare. Growth without governance produces numbers. Trusted governance turns numbers into a life a citizen can actually feel.",
+      "The Mo Ibrahim Index, the most serious continental measure we have, tells us something we must not look away from. After years of progress, governance across Africa stalled around 2022, and for almost half of our population, it was worse in 2024 than in 2014. Deterioration was sharpest in security, rule of law, and public perception of official integrity.",
+      "In recent Afrobarometer surveys, Africans across North-Nine countries were asked which institutions they trust, and for two decades, the numbers have moved steadily downward. Citizens do not trust their parliaments, their police, or their courts. Read that invasion carefully. Across this continent, the institutions citizens trust least are the very ones built to enforce the law. When citizens stop believing the rules are fair, they stop obeying them. That is beyond politics. It is a warning written in the language of illegitimacy.",
+      "## How trust is lost",
+      "Trust does not evaporate in the abstract. They lose it one encounter at a time. A trader who may not pay an informal fee to move his goods. A widow who cannot recover her land because the court is slow and the other party is connected. A young graduate who knows that the public recruitment process is a ceremony for those who can afford it. None of these people is reading a governance index. Each is learning a lesson about the state, and the lesson is always the same: the system is stacked.",
+      "The data confirms the instinct. In the most recent Afrobarometer survey, only half of Africans were confident that an ordinary person could get justice in court. In five countries, fewer than one in three believed it. The law is a tool. A justice system experienced as slow, costly and unequal cannot underwrite an economy. It pushes disputes back into informal channels — or into the street. It tells the small entrepreneur that his contracts are unenforceable.",
+      "I learned this in the most practical way possible. When I went to the Federal Road Safety Corps, we did not lack laws. Nigeria has plenty of traffic laws. What we lacked was a system that applied them without fear or favor. Where the rule was enforced fairly, on the chairman and on the tanker driver alike. Rebuilding that belief, one checkpoint number, one plate number at a time, was the real work of the FRSC. It was not about buying vehicles; it was about convincing the driver, and his officer, that the rule meant what it said. In the mind of that citizen, that's what site it represents.",
+      "## Follow the money: why accountability is a public duty",
+      "Let me turn now to the third pillar: public money.",
+      "We treat accounting as a technical craft and governance as a political one, as if they lived in different buildings. They do not. The words accountability and accounting share a single root, and that is not a coincidence of language. It is a statement of moral obligation. Public money is not the state's money. It is the pooled effort of citizens, handed over on trust.",
+      "Agency Culture accepts the same constraints and refuses the same conclusion. It asks: given everything working against us, what can we build with what we have? It replaces excuses with preparation, discipline, and responsibility. The shift from Alibi to Agency is, in my view, the single most important move Nigerian leadership must make, from the university classroom to the presidency. I am proud to see the Mekaria Fellows graduating this lake class next year. A nation of capable people trapped in alibi is the saddest waste I know.",
+      "## The new technologies: technology and trade",
+      "We live in an age of digital transformation, and government makes, and this faculty trains people for both.",
+      "The first is technology. We are told that digital systems will redeem African governance, and they can. They can widen the tax base, verify identities, trace payments, or expose fraud. But technology does not replace a reform agenda. It reveals it. A bad process automated is simply a faster bad process. An opaque system digitized is simply a faster form of the corruption. A weak registry becomes a weak digital registry. Let me put it as plainly as I can: Africa cannot algorithm its way out of bad governance. The digital shift works only where it is matched by institutional reform — where power becomes more traceable, service more accessible, and failure harder to hide. Build it on inclusion, or privacy, on availability, or do not call it progress.",
+      "Take trade and the African Continental Free Trade Area. The World Bank estimates that full implementation could, on the World Bank's estimate, raise our income by hundreds of billions of dollars and lift tens of millions out of poverty. Yet today, intra-African trade remains below fifteen per cent of total trade, bogged down by border delays, informal levies, and shortages of goods. It is a governance crisis. Border delays that delay, customs that extort, regulations that contradict one another — these are not geographical facts. They are institutional choices. The promises of AfCFTA will remain on paper until we recognize that trade, at its core, is an extension of trustworthiness across borders.",
+      "## Mekaria: a philosophy that belongs to this soil",
+      "Let me close with a philosophy, because institutions are not built with capital and policy alone. They are built, as Max Weber wrote, by people who have chosen to live for politics, not off politics.",
+      "I do not believe our people carried their disputes to Ogwugwu because they were primitive or unchristian. They carried them there because, on the evidence available to them, the shrine kept its word and the state did not. The whole task of governance, the entire trust project, can be put in a single sentence. It is the work of building a state that keeps its word as faithfully as the people once believed the shrine kept its interest. A court that decides. A budget that can be followed. A police officer who protects rather than preys. A promise, followed by visible delivery.",
+      "The day we redirect to our own institutions the faith our people once reserved for the shrine is the day Africa converts its growth into development, and its potential into a life its citizens can feel. That day will not arrive as forecast. It will not arrive by slogan. It will arrive through the disciplined choices of people like those in this hall, made not for one budget cycle but for a generation.",
+      "Measure honestly. Monitor without flinching. Improve without ego. And refuse, every single day, to accept the floor as the ceiling.",
+      "That is the call of Mekaria. To do more. To do better. To begin today. Osi ta di nma. Taa bụ gbo.",
+      "Thank you, and God bless you.",
+      "## Endnotes",
+      "1. World Bank, \"Sub-Saharan Africa's Growth Holds, but Downside Risks Mount,\" press release, 8 April 2026. See also International Monetary Fund, Regional Economic Outlook: Sub-Saharan Africa, April 2026 (Washington, DC: IMF, 2026), projecting regional growth of 4.3 per cent for 2026. Accessed 18 June 2026. worldbank.org/en/news/press-release/2026/04/08/sub-saharan-africa-s-growth-holds-but-downside-risks-mount",
+      "2. Mo Ibrahim Foundation, 2024 Ibrahim Index of African Governance: Index Report (London: Mo Ibrahim Foundation, 2024). See also Mo Ibrahim Foundation, \"Governance Progress in Africa Grinds to a Halt as Security and Democracy Deteriorate,\" press release, 2024. Accessed 18 June 2026. mo.ibrahim.foundation/sites/default/files/2024-10/2024-index-report.pdf",
+      "3. K. A. Adaba, \"Across Africa, Public Trust in Key Institutions and Leaders Is Weakening,\" Afrobarometer Dispatch No. 891, 31 October 2024. Accessed 18 June 2026. afrobarometer.org/wp-content/uploads/2024/10/AD891-PAP20-Africans-trust-in-key-institutions-and-leaders-is-weakening-Afrobarometer-31oct24.pdf",
+      "4. Afrobarometer, \"Many Africans See Justice System as Unequal, Costly, and Slow,\" 2 June 2026. Accessed 18 June 2026. afrobarometer.org/articles/many-africans-see-justice-system-as-unequal-costly-and-slow-afrobarometer-survey-reveals",
+      "5. Organisation for Economic Co-operation and Development, African Union Commission, and African Tax Administration Forum, Revenue Statistics in Africa 2025 (Paris: OECD Publishing, 2025). Accessed 18 June 2026.",
+      "6. Sarbanes-Oxley Act of 2002, Public Law 107-204, 116 Stat. 745. Accessed 18 June 2026.",
+      "7. National Electoral Commission (INEC), \"Electoral Act 2022,\" STATUTES/STATUTES_OELAY_ACT_OF_2002.pdf",
+      "8. Osita Chidoka, \"Legitimizing the Nigerian State: INEC and Elections,\" Facebook, 27 November 2016. Accessed 18 June 2026. facebook.com/tosita.chidoka/posts/11147607889317851",
+      "9. Central Bank of Nigeria, \"Monetary Policy Committee Communiqués and Members' Personal Statements.\" Accessed 18 June 2026. cbn.gov.ng/documents/mpc.asp",
+      "10. Athena Centre for Policy and Leadership and Nnamdi Polls, \"Survey on INEC Reform Priorities,\" 2026. Accessed 18 June 2026.",
+      "11. World Bank, \"Trade Act Could Boost Africa's Income by $450 Billion, Study Finds,\" press release, 27 July 2020. Accessed 18 June 2020. worldbank.org/en/news/press-release/2020/07/27/african-continental-free-trade-area",
+      "12. UNCTAD, Economic Development in Africa Report 2024: Revenue Mobilization for Development in Africa Report 2024 (Geneva: UNCTAD, 2024). Accessed 18 June 2026. unctad.org/publication/economic-development-africa-report-2024",
+      "13. Max Weber, The Protestant Ethic and the Spirit of Capitalism (1905). Accessed 18 June 2026. gde.univ.gda.pl/e-wgp-content/uploads/2018/02/Max_Weber_The_Protestant_Ethic_and_the_Spirit_of_Capitalism.pdf",
+      "14. Masaaki Imai, Kaizen: The Key to Japan's Competitive Success (New York: McGraw-Hill, 1986). Accessed 18 June 2026. books.google.com.ng/books/about/Kaizen_The_Key_to_Japan_s_Competitive_Success"
     ]
   },
   {

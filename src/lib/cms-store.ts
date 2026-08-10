@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { essays as initialEssays, Essay } from "./essays";
 
 export type DispatchPost = {
@@ -14,6 +15,7 @@ export type DispatchPost = {
   pdfUrl?: string;
   pdfFileName?: string;
   isHtmlUpload?: boolean;
+  imageUrl?: string;
 };
 
 export type PressInquiryItem = {
@@ -207,9 +209,107 @@ const initialSettings: CMSSettings = {
   maintenanceMode: false
 };
 
-const STORAGE_KEY = "osita_cms_local_db_v3";
+const STORAGE_KEY = "osita_cms_local_db_v5";
+
+let inMemoryData: CMSData | null = null;
+
+// --- INDEXEDDB ENGINE FOR LARGE ATTACHMENT PERSISTENCE ---
+const IDB_NAME = "OsitaCMS_IDB_DB_v2";
+const IDB_STORE = "cms_store";
+const IDB_KEY = "osita_cms_root_data";
+
+function openCMSDB(): Promise<IDBDatabase | null> {
+  if (typeof window === "undefined" || !window.indexedDB) {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = (e) => {
+        console.warn("IndexedDB open error:", e);
+        resolve(null);
+      };
+    } catch (err) {
+      console.warn("IndexedDB not supported or blocked:", err);
+      resolve(null);
+    }
+  });
+}
+
+async function loadCMSDataFromIDB(): Promise<CMSData | null> {
+  const db = await openCMSDB();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(IDB_KEY);
+      req.onsuccess = () => resolve((req.result as CMSData) || null);
+      req.onerror = () => resolve(null);
+    } catch (e) {
+      console.warn("IndexedDB load request failed:", e);
+      resolve(null);
+    }
+  });
+}
+
+async function saveCMSDataToIDB(data: CMSData): Promise<void> {
+  const db = await openCMSDB();
+  if (!db) return;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.put(data, IDB_KEY);
+      req.onsuccess = () => resolve();
+      req.onerror = (e) => {
+        console.warn("IndexedDB save request failed:", e);
+        resolve();
+      };
+    } catch (e) {
+      console.warn("IndexedDB transaction failed:", e);
+      resolve();
+    }
+  });
+}
+
+let isIDBInitialized = false;
+let isIDBLoading = false;
+
+export function initCMSStoreFromIndexedDB(onLoaded?: (data: CMSData) => void) {
+  if (typeof window === "undefined" || isIDBLoading) return;
+  isIDBLoading = true;
+  loadCMSDataFromIDB().then((dbData) => {
+    isIDBLoading = false;
+    isIDBInitialized = true;
+    if (dbData && Array.isArray(dbData.essays) && dbData.essays.length > 0) {
+      inMemoryData = dbData;
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dbData));
+      } catch {
+        // ignore quota error for large session storage objects
+      }
+      window.dispatchEvent(new Event("osita_cms_updated"));
+      if (onLoaded) onLoaded(dbData);
+    }
+  });
+}
 
 export function getCMSData(): CMSData {
+  if (inMemoryData) {
+    if (typeof window !== "undefined" && !isIDBInitialized && !isIDBLoading) {
+      initCMSStoreFromIndexedDB();
+    }
+    return inMemoryData;
+  }
+
   if (typeof window === "undefined") {
     return {
       essays: initialEssays,
@@ -220,45 +320,82 @@ export function getCMSData(): CMSData {
     };
   }
 
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const defaultData: CMSData = {
-        essays: initialEssays,
-        dispatches: initialDispatches,
-        inquiries: initialInquiries,
-        subscribers: initialSubscribers,
-        settings: initialSettings
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
-      return defaultData;
-    }
-    const parsed = JSON.parse(raw);
-    return {
-      essays: Array.isArray(parsed.essays) && parsed.essays.length > 0 ? parsed.essays : initialEssays,
-      dispatches: Array.isArray(parsed.dispatches) && parsed.dispatches.length > 0 ? parsed.dispatches : initialDispatches,
-      inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : initialInquiries,
-      subscribers: Array.isArray(parsed.subscribers) ? parsed.subscribers : initialSubscribers,
-      settings: { ...initialSettings, ...(parsed.settings || {}) }
-    };
-  } catch {
-    return {
-      essays: initialEssays,
-      dispatches: initialDispatches,
-      inquiries: initialInquiries,
-      subscribers: initialSubscribers,
-      settings: initialSettings
-    };
+  if (!isIDBInitialized && !isIDBLoading) {
+    initCMSStoreFromIndexedDB();
   }
+
+  try {
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      raw = sessionStorage.getItem(STORAGE_KEY);
+    }
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const savedEssays: Essay[] = Array.isArray(parsed.essays) && parsed.essays.length > 0 ? parsed.essays : initialEssays;
+      const savedDispatches: DispatchPost[] = Array.isArray(parsed.dispatches) && parsed.dispatches.length > 0 ? parsed.dispatches : initialDispatches;
+
+      inMemoryData = {
+        essays: savedEssays,
+        dispatches: savedDispatches,
+        inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : initialInquiries,
+        subscribers: Array.isArray(parsed.subscribers) ? parsed.subscribers : initialSubscribers,
+        settings: { ...initialSettings, ...(parsed.settings || {}) }
+      };
+      return inMemoryData;
+    }
+  } catch (err) {
+    console.error("Error reading CMS data from localStorage:", err);
+  }
+
+  const defaultData: CMSData = {
+    essays: initialEssays,
+    dispatches: initialDispatches,
+    inquiries: initialInquiries,
+    subscribers: initialSubscribers,
+    settings: initialSettings
+  };
+  inMemoryData = defaultData;
+  return defaultData;
 }
 
 export function saveCMSData(data: CMSData) {
+  inMemoryData = data;
   if (typeof window !== "undefined") {
+    // 1. Asynchronously persist full data to IndexedDB (unlimited storage for PDFs and attached images)
+    saveCMSDataToIDB(data).catch((err) => console.warn("Failed saving to IndexedDB:", err));
+
+    // 2. Synchronously update localStorage & sessionStorage with quota fallback
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      const serialized = JSON.stringify(data);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      sessionStorage.setItem(STORAGE_KEY, serialized);
     } catch (err) {
-      console.warn("Error saving to localStorage", err);
+      console.warn("Storage quota limit exceeded. Saving light dataset backup to localStorage while IndexedDB maintains full attachments.", err);
+      try {
+        const lightData: CMSData = {
+          ...data,
+          essays: data.essays.map((e) => ({
+            ...e,
+            imageUrl: e.imageUrl && e.imageUrl.length > 100000 ? "" : e.imageUrl,
+            pdfUrl: e.pdfUrl && e.pdfUrl.length > 100000 ? "#" : e.pdfUrl,
+          })),
+          dispatches: data.dispatches.map((d) => ({
+            ...d,
+            imageUrl: d.imageUrl && d.imageUrl.length > 100000 ? "" : d.imageUrl,
+            pdfUrl: d.pdfUrl && d.pdfUrl.length > 100000 ? "#" : d.pdfUrl,
+          }))
+        };
+        const lightSerialized = JSON.stringify(lightData);
+        localStorage.setItem(STORAGE_KEY, lightSerialized);
+        sessionStorage.setItem(STORAGE_KEY, lightSerialized);
+      } catch (innerErr) {
+        console.warn("Could not write light backup to localStorage:", innerErr);
+      }
     }
+
+    // Dispatch global event so subscribers update immediately
+    window.dispatchEvent(new Event("osita_cms_updated"));
   }
 }
 
@@ -320,6 +457,25 @@ export function addCMSSubscriber(email: string, source = "Website") {
   current.subscribers.unshift(newSub);
   saveCMSData(current);
   return newSub;
+}
+
+export function useCMSData(): CMSData {
+  const [data, setData] = useState<CMSData>(() => getCMSData());
+
+  useEffect(() => {
+    initCMSStoreFromIndexedDB((updated) => {
+      setData({ ...updated });
+    });
+
+    const handleUpdate = () => {
+      setData({ ...getCMSData() });
+    };
+
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
+
+  return data;
 }
 
 export function updateCMSSettings(newSettings: Partial<CMSSettings>) {
