@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f5f0e8;
+  --paper: #ffffff;
   --ink: #11100e;
   --muted: #605a52;
   --line: #d8d0c3;
@@ -181,7 +181,7 @@ em { font-weight: 400; color: #5f574e; }
 
 /* Modal Reader & Standalone Essay Reader */
 .essay-modal-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(16, 16, 15, 0.75); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
-.essay-modal-container { background: #fbf9f5; border: 1px solid var(--line); border-radius: 12px; max-width: 860px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.3); position: relative; animation: modalFadeIn 0.25s ease-out; }
+.essay-modal-container { background: #ffffff; border: 1px solid var(--line); border-radius: 12px; max-width: 860px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.3); position: relative; animation: modalFadeIn 0.25s ease-out; }
 @keyframes modalFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
 .essay-reader { padding: 48px; position: relative; }

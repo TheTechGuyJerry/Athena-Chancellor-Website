@@ -236,7 +236,56 @@ const initialSettings: CMSSettings = {
   maintenanceMode: false
 };
 
-let inMemoryData: CMSData = {
+const CACHE_KEY = "osita_cms_cache_v2";
+
+function loadCachedCMSData(): CMSData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      Array.isArray(parsed.essays) &&
+      Array.isArray(parsed.dispatches) &&
+      parsed.settings
+    ) {
+      return parsed as CMSData;
+    }
+  } catch (err) {
+    console.warn("[CMS Store] Failed to parse cached CMS data:", err);
+  }
+  return null;
+}
+
+function saveCachedCMSData(data: CMSData) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.warn("[CMS Store] Storage quota warning while caching, attempting lightweight save:", err);
+    try {
+      const lightweight = {
+        ...data,
+        essays: data.essays.map((e) => ({
+          ...e,
+          imageUrl: e.imageUrl && e.imageUrl.length > 50000 ? undefined : e.imageUrl
+        })),
+        dispatches: data.dispatches.map((d) => ({
+          ...d,
+          imageUrl: d.imageUrl && d.imageUrl.length > 50000 ? undefined : d.imageUrl
+        }))
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(lightweight));
+    } catch (_) {
+      // Ignore fallback storage quota error
+    }
+  }
+}
+
+const cachedInitialData = loadCachedCMSData();
+
+let inMemoryData: CMSData = cachedInitialData || {
   essays: initialEssays,
   dispatches: initialDispatches,
   inquiries: initialInquiries,
@@ -248,6 +297,7 @@ let isInitializingPromise: Promise<CMSData> | null = null;
 let isRealtimeListenerAttached = false;
 
 function notifyCMSListeners() {
+  saveCachedCMSData(inMemoryData);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("osita_cms_updated"));
   }

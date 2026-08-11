@@ -1,4 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { getCMSData } from "../lib/cms-store";
+import { Essay } from "../lib/essays";
 
 const institutions = [
   ["The Canon", "Essays and long-form writing on governance, leadership, and institutional development.", "/collections", "BROWSE WRITING"],
@@ -16,6 +19,22 @@ const roles = [
 ];
 
 export function HomePage() {
+  const [featuredEssay, setFeaturedEssay] = useState<Essay | null>(() => {
+    const list = getCMSData().essays;
+    return list && list.length > 0 ? list[0] : null;
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const list = getCMSData().essays;
+      if (list && list.length > 0) {
+        setFeaturedEssay(list[0]);
+      }
+    };
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
+
   return (
     <main>
       <section className="hero wrap">
@@ -28,12 +47,12 @@ export function HomePage() {
         <article className="featured">
           <div>
             <p className="eyebrow">Featured essay</p>
-            <h2>From Alibi to Agency</h2>
+            <h2>{featuredEssay ? featuredEssay.title : "From Alibi to Agency"}</h2>
           </div>
           <div>
-            <h3>Re-Inventing the South-East Through Data, Discipline and Purpose</h3>
-            <p>A case for structured ambition, stronger institutions, and purposeful regional development.</p>
-            <Link className="text-link" to="/collections">Read essay <span>→</span></Link>
+            <h3>{featuredEssay?.subtitle || featuredEssay?.title || "Re-Inventing the South-East Through Data, Discipline and Purpose"}</h3>
+            <p>{featuredEssay?.summary || "A case for structured ambition, stronger institutions, and purposeful regional development."}</p>
+            <Link className="text-link" to={featuredEssay ? `/collections/${featuredEssay.slug}` : "/collections"}>Read essay <span>→</span></Link>
           </div>
         </article>
       </section>
