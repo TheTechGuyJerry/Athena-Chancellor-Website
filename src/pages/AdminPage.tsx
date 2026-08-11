@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, FormEvent } from "react";
-import { UploadTask } from "firebase/storage";
+import { useState, useEffect, FormEvent } from "react";
 import { CMSContentEditor } from "../components/CMSContentEditor";
 import {
   getCMSData,
@@ -10,13 +9,13 @@ import {
   updateInquiryStatus,
   deleteInquiry,
   updateCMSSettings,
-  uploadCMSFile,
   DispatchPost,
   PressInquiryItem,
   SubscriberItem,
   CMSSettings,
 } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
+import { compressImageToBase64 } from "../lib/image-utils";
 
 type CmsAuthPhase =
   | "checking"
@@ -64,13 +63,8 @@ export function AdminPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageUploadProgress, setImageUploadProgress] = useState(0);
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
-  const imageTaskRef = useRef<UploadTask | null>(null);
-
-  const [isUploadingPdfInEssay, setIsUploadingPdfInEssay] = useState(false);
-  const [isUploadingPdfInDispatch, setIsUploadingPdfInDispatch] = useState(false);
 
   // Modals & Editors
   const [isEssayModalOpen, setIsEssayModalOpen] = useState(false);
@@ -1193,49 +1187,35 @@ export function AdminPage() {
                     <label
                       style={{
                         padding: "9px 14px",
-                        background: isUploadingImage ? "#94a3b8" : "#121528",
+                        background: isCompressingImage ? "#94a3b8" : "#121528",
                         color: "#fff",
                         borderRadius: "4px",
                         fontSize: "12px",
                         fontWeight: "bold",
-                        cursor: isUploadingImage ? "not-allowed" : "pointer",
+                        cursor: isCompressingImage ? "not-allowed" : "pointer",
                         whiteSpace: "nowrap"
                       }}
                     >
-                      {isUploadingImage ? `⏳ ${imageUploadProgress}%` : "📷 Upload Photo"}
+                      {isCompressingImage ? "⏳ Processing Image..." : "📷 Upload Photo"}
                       <input
                         type="file"
                         accept="image/*"
                         style={{ display: "none" }}
-                        disabled={isUploadingImage}
+                        disabled={isCompressingImage}
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
                           const inputEl = e.target;
-                          setIsUploadingImage(true);
-                          setImageUploadProgress(0);
+                          setIsCompressingImage(true);
                           setImageUploadError(null);
                           try {
-                            const attachment = await uploadCMSFile(
-                              file,
-                              "essays",
-                              (progress) => {
-                                setImageUploadProgress(progress.progressPercent);
-                              },
-                              (task) => {
-                                imageTaskRef.current = task;
-                              },
-                              25 * 1024 * 1024
-                            );
-                            setEditingEssay((prev) => prev ? { ...prev, imageUrl: attachment.url } : null);
+                            const base64DataUrl = await compressImageToBase64(file);
+                            setEditingEssay((prev) => prev ? { ...prev, imageUrl: base64DataUrl } : null);
                           } catch (err) {
                             const errMsg = err instanceof Error ? err.message : String(err);
-                            if (!errMsg.toLowerCase().includes("canceled")) {
-                              setImageUploadError(errMsg);
-                            }
+                            setImageUploadError(errMsg);
                           } finally {
-                            setIsUploadingImage(false);
-                            imageTaskRef.current = null;
+                            setIsCompressingImage(false);
                             inputEl.value = "";
                           }
                         }}
@@ -1243,37 +1223,15 @@ export function AdminPage() {
                     </label>
                   </div>
 
-                  {isUploadingImage && (
-                    <div style={{ marginBottom: "10px", padding: "10px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: "600", color: "#1e40af" }}>
-                          ⏳ Uploading Cover Photo — {imageUploadProgress}%
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (imageTaskRef.current) {
-                              try { imageTaskRef.current.cancel(); } catch (_) {}
-                              imageTaskRef.current = null;
-                            }
-                            setIsUploadingImage(false);
-                            setImageUploadProgress(0);
-                            setImageUploadError("Photo upload canceled.");
-                          }}
-                          style={{ padding: "2px 8px", fontSize: "11px", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "4px", cursor: "pointer" }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      <div style={{ width: "100%", background: "#dbeafe", height: "6px", borderRadius: "3px", overflow: "hidden" }}>
-                        <div style={{ width: `${imageUploadProgress}%`, background: "#2563eb", height: "100%", transition: "width 0.2s ease" }} />
-                      </div>
+                  {isCompressingImage && (
+                    <div style={{ marginBottom: "10px", padding: "10px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px", fontSize: "12px", color: "#1e40af" }}>
+                      ⏳ Resizing &amp; Compressing cover image...
                     </div>
                   )}
 
                   {imageUploadError && (
-                    <div style={{ marginBottom: "10px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "6px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
-                      ❌ Photo Upload Error: {imageUploadError}
+                    <div style={{ marginBottom: "10px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "8px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
+                      ❌ {imageUploadError}
                     </div>
                   )}
 
@@ -1374,7 +1332,6 @@ export function AdminPage() {
                   }}
                   mode={essayEditorMode}
                   onModeChange={(m) => setEssayEditorMode(m)}
-                  onUploadingStateChange={(u) => setIsUploadingPdfInEssay(u)}
                 />
               </div>
 
@@ -1388,28 +1345,26 @@ export function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setIsEssayModalOpen(false)}
-                  disabled={isSavingEssay || isUploadingImage || isUploadingPdfInEssay}
+                  disabled={isSavingEssay || isCompressingImage}
                   style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingEssay || isUploadingImage || isUploadingPdfInEssay}
+                  disabled={isSavingEssay || isCompressingImage}
                   className="gold-button"
                   style={{
                     border: 0,
                     padding: "10px 20px",
-                    opacity: (isSavingEssay || isUploadingImage || isUploadingPdfInEssay) ? 0.6 : 1,
-                    cursor: (isSavingEssay || isUploadingImage || isUploadingPdfInEssay) ? "not-allowed" : "pointer"
+                    opacity: (isSavingEssay || isCompressingImage) ? 0.6 : 1,
+                    cursor: (isSavingEssay || isCompressingImage) ? "not-allowed" : "pointer"
                   }}
                 >
-                  {isSavingEssay
+                  {isCompressingImage
+                    ? "⏳ Processing Image..."
+                    : isSavingEssay
                     ? "⏳ Saving to Server..."
-                    : isUploadingImage
-                    ? "⏳ Waiting for Image Upload..."
-                    : isUploadingPdfInEssay
-                    ? "⏳ Waiting for PDF Upload..."
                     : essaySaveError
                     ? "Retry Save Essay"
                     : "Save Essay"}
@@ -1484,7 +1439,6 @@ export function AdminPage() {
                   }}
                   mode={dispatchEditorMode}
                   onModeChange={(m) => setDispatchEditorMode(m)}
-                  onUploadingStateChange={(u) => setIsUploadingPdfInDispatch(u)}
                 />
               </div>
 
@@ -1498,26 +1452,24 @@ export function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setIsDispatchModalOpen(false)}
-                  disabled={isSavingDispatch || isUploadingPdfInDispatch}
+                  disabled={isSavingDispatch}
                   style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingDispatch || isUploadingPdfInDispatch}
+                  disabled={isSavingDispatch}
                   className="gold-button"
                   style={{
                     border: 0,
                     padding: "10px 20px",
-                    opacity: (isSavingDispatch || isUploadingPdfInDispatch) ? 0.6 : 1,
-                    cursor: (isSavingDispatch || isUploadingPdfInDispatch) ? "not-allowed" : "pointer"
+                    opacity: isSavingDispatch ? 0.6 : 1,
+                    cursor: isSavingDispatch ? "not-allowed" : "pointer"
                   }}
                 >
                   {isSavingDispatch
                     ? "⏳ Saving to Server..."
-                    : isUploadingPdfInDispatch
-                    ? "⏳ Waiting for PDF Upload..."
                     : dispatchSaveError
                     ? "Retry Save Dispatch"
                     : "Save Dispatch"}

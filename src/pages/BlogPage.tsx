@@ -105,11 +105,12 @@ export function BlogPage() {
               <div className="dark-reader-actions">
                 <a
                   href={selectedPost.pdfUrl}
-                  download={selectedPost.pdfFileName || "dispatch_document.pdf"}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="dark-reader-pdf-btn"
                   style={{ textDecoration: "none" }}
                 >
-                  📄 Download Attached PDF
+                  📄 View / Download Attached Document
                 </a>
               </div>
             )}

@@ -1,6 +1,4 @@
 import React, { useRef, useState } from "react";
-import { UploadTask } from "firebase/storage";
-import { uploadCMSFile } from "../lib/cms-store";
 
 interface CMSContentEditorProps {
   value: string;
@@ -20,37 +18,12 @@ export function CMSContentEditor({
   pdfFileName,
   onPdfChange,
   mode,
-  onModeChange,
-  onUploadingStateChange
+  onModeChange
 }: CMSContentEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [htmlFileName, setHtmlFileName] = useState<string>("");
   const [htmlPreview, setHtmlPreview] = useState<boolean>(false);
-  const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
-  const [pdfUploadProgress, setPdfUploadProgress] = useState<number>(0);
-  const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
-  const pdfTaskRef = useRef<UploadTask | null>(null);
-
-  const setUploadingStatus = (uploading: boolean) => {
-    setIsUploadingPdf(uploading);
-    if (onUploadingStateChange) {
-      onUploadingStateChange(uploading);
-    }
-  };
-
-  const handleCancelPdfUpload = () => {
-    if (pdfTaskRef.current) {
-      try {
-        pdfTaskRef.current.cancel();
-      } catch (err) {
-        console.warn("Error canceling upload task:", err);
-      }
-      pdfTaskRef.current = null;
-    }
-    setUploadingStatus(false);
-    setPdfUploadProgress(0);
-    setPdfUploadError("Upload canceled by user.");
-  };
+  const [pdfUrlError, setPdfUrlError] = useState<string | null>(null);
 
   // Formatting helpers
   const insertFormatting = (tagStart: string, tagEnd: string = "") => {
@@ -111,58 +84,6 @@ export function CMSContentEditor({
       }
     };
     reader.readAsText(file);
-  };
-
-  // PDF Upload handler using Firebase Storage
-  const handlePdfFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const inputEl = e.target;
-
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      alert("Please select a valid PDF file (.pdf)");
-      inputEl.value = "";
-      return;
-    }
-
-    if (file.size > 25 * 1024 * 1024) {
-      alert(`The selected PDF file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size is 25MB.`);
-      inputEl.value = "";
-      return;
-    }
-
-    setUploadingStatus(true);
-    setPdfUploadProgress(0);
-    setPdfUploadError(null);
-
-    try {
-      const attachment = await uploadCMSFile(
-        file,
-        "general",
-        (progress) => {
-          setPdfUploadProgress(progress.progressPercent);
-        },
-        (task) => {
-          pdfTaskRef.current = task;
-        },
-        25 * 1024 * 1024
-      );
-      onPdfChange(attachment.url, attachment.filename);
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      if (!errMsg.toLowerCase().includes("canceled")) {
-        console.error("PDF upload error:", err);
-        setPdfUploadError(errMsg);
-      } else {
-        console.info("PDF upload canceled by user.");
-      }
-    } finally {
-      setUploadingStatus(false);
-      pdfTaskRef.current = null;
-      inputEl.value = "";
-    }
   };
 
   return (
@@ -423,110 +344,86 @@ export function CMSContentEditor({
         </div>
       )}
 
-      {/* PDF ATTACHMENT SECTION FOR DOWNLOADS */}
+      {/* PDF / DOCUMENT LINK SECTION */}
       <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--line)" }}>
         <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", marginBottom: "6px", color: "var(--ink)" }}>
-          📎 PDF Document Attachment (For Reader Downloads)
+          📎 PDF / Document Link (For Reader Downloads)
         </label>
         <p style={{ fontSize: "12px", color: "var(--muted)", margin: "0 0 10px 0" }}>
-          Attach an official PDF file so readers can click &quot;Download PDF&quot; on the article page to receive this exact document.
+          Administrators will manually upload PDFs/documents to OneDrive, Google Drive, SharePoint, Dropbox, or another external file-storage service and paste the shared HTTPS URL into this field.
         </p>
 
-        {pdfUrl && pdfUrl !== "#" ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 16px", borderRadius: "6px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
-              <span style={{ fontSize: "20px" }}>📄</span>
-              <div>
-                <strong style={{ fontSize: "13px", color: "#166534", display: "block" }}>
-                  {pdfFileName || "Attached Document.pdf"}
-                </strong>
-                <span style={{ fontSize: "11px", color: "#15803d" }}>PDF Attachment Active</span>
-              </div>
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
+              PDF / Document Link *
+            </label>
+            <input
+              type="url"
+              placeholder="https://drive.google.com/... or https://onedrive.live.com/..."
+              value={pdfUrl && pdfUrl !== "#" ? pdfUrl : ""}
+              onChange={(e) => {
+                const val = e.target.value.trim();
+                if (val && !val.toLowerCase().startsWith("https://")) {
+                  setPdfUrlError("URL must start with https://");
+                } else {
+                  setPdfUrlError(null);
+                }
+                onPdfChange(val, pdfFileName || "Official Document.pdf");
+              }}
+              style={{
+                width: "100%",
+                padding: "9px 12px",
+                border: pdfUrlError ? "1px solid #ef4444" : "1px solid var(--line)",
+                borderRadius: "4px",
+                fontSize: "13px"
+              }}
+            />
+            {pdfUrlError && (
+              <span style={{ fontSize: "11px", color: "#b91c1c", marginTop: "4px", display: "block" }}>
+                ⚠️ {pdfUrlError}
+              </span>
+            )}
+          </div>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "4px" }}>
+              Document Display Name (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Osita_Chidoka_Policy_Paper.pdf"
+              value={pdfFileName || ""}
+              onChange={(e) => onPdfChange(pdfUrl || "", e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid var(--line)",
+                borderRadius: "4px",
+                fontSize: "13px"
+              }}
+            />
+          </div>
+
+          {pdfUrl && pdfUrl.startsWith("https://") && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "10px 14px", borderRadius: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "18px" }}>📄</span>
+                <span style={{ fontSize: "12px", color: "#166534", fontWeight: "600" }}>
+                  Active Link: {pdfFileName || "Document"}
+                </span>
+              </div>
               <a
                 href={pdfUrl}
                 target="_blank"
                 rel="noreferrer"
-                download={pdfFileName || "attached_document.pdf"}
-                style={{ padding: "6px 12px", fontSize: "12px", background: "#166534", color: "#fff", borderRadius: "4px", textDecoration: "none", fontWeight: "bold" }}
+                style={{ padding: "4px 10px", fontSize: "12px", background: "#166534", color: "#fff", borderRadius: "4px", textDecoration: "none", fontWeight: "bold" }}
               >
-                Download Test
+                Test External Link ↗
               </a>
-              <button
-                type="button"
-                onClick={() => onPdfChange("#", "")}
-                style={{ padding: "6px 12px", fontSize: "12px", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "4px", cursor: "pointer" }}
-              >
-                Remove
-              </button>
             </div>
-          </div>
-        ) : (
-          <div>
-            {isUploadingPdf ? (
-              <div style={{ padding: "14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e40af" }}>
-                    ⏳ Uploading PDF — {pdfUploadProgress}%
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCancelPdfUpload}
-                    style={{ padding: "4px 10px", fontSize: "12px", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
-                  >
-                    Cancel Upload
-                  </button>
-                </div>
-                <div style={{ width: "100%", background: "#dbeafe", height: "8px", borderRadius: "4px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      width: `${pdfUploadProgress}%`,
-                      background: "#2563eb",
-                      height: "100%",
-                      transition: "width 0.2s ease"
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div>
-                <input
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  onChange={handlePdfFileUpload}
-                  style={{ display: "none" }}
-                  id="cms-pdf-upload-input"
-                />
-                <label
-                  htmlFor="cms-pdf-upload-input"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    background: "#fff",
-                    border: "1px solid var(--line)",
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    color: "var(--ink)",
-                  }}
-                >
-                  📄 Select PDF File (.pdf)
-                </label>
-              </div>
-            )}
-
-            {pdfUploadError && (
-              <div style={{ marginTop: "8px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "8px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
-                ❌ PDF Upload Error: {pdfUploadError}. Please try again.
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

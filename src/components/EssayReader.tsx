@@ -15,13 +15,8 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
   const [subDone, setSubDone] = useState(false);
 
   const handleDownloadPDF = () => {
-    if (essay.pdfUrl && essay.pdfUrl !== "#") {
-      const a = document.createElement("a");
-      a.href = essay.pdfUrl;
-      a.download = essay.pdfFileName || `${essay.slug}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    if (essay.pdfUrl && essay.pdfUrl !== "#" && essay.pdfUrl.trim() !== "") {
+      window.open(essay.pdfUrl, "_blank", "noopener,noreferrer");
       return;
     }
 
