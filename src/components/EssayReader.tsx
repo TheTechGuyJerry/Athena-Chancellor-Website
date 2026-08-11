@@ -124,7 +124,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
           }
           if (paragraph.startsWith("### ")) {
             return (
-              <h3 key={index} style={{ color: "#d4af37", marginTop: "32px", marginBottom: "16px", fontFamily: "Georgia, serif", fontSize: "22px" }}>
+              <h3 key={index} className="dark-reader-h3">
                 {paragraph.replace("### ", "")}
               </h3>
             );
@@ -142,6 +142,15 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
               <p key={index} className="dark-reader-italic">
                 <em>{paragraph.replace(/\*/g, "")}</em>
               </p>
+            );
+          }
+
+          // Check if paragraph is numbered section header e.g. "08 JUSTICE: EQUALITY..."
+          if (/^\d{2}\s+[A-Z0-9\s:,\-'"]+$/.test(paragraph.trim())) {
+            return (
+              <h2 key={index} className="dark-reader-h2">
+                {paragraph.trim()}
+              </h2>
             );
           }
 

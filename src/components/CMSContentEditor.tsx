@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { UploadTask } from "firebase/storage";
 import { uploadCMSFile } from "../lib/cms-store";
 
 interface CMSContentEditorProps {
@@ -9,6 +10,7 @@ interface CMSContentEditorProps {
   onPdfChange: (pdfUrl: string, pdfFileName: string) => void;
   mode: "text" | "html";
   onModeChange: (mode: "text" | "html") => void;
+  onUploadingStateChange?: (isUploading: boolean) => void;
 }
 
 export function CMSContentEditor({
@@ -19,12 +21,36 @@ export function CMSContentEditor({
   onPdfChange,
   mode,
   onModeChange,
+  onUploadingStateChange
 }: CMSContentEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [htmlFileName, setHtmlFileName] = useState<string>("");
   const [htmlPreview, setHtmlPreview] = useState<boolean>(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
+  const [pdfUploadProgress, setPdfUploadProgress] = useState<number>(0);
   const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
+  const pdfTaskRef = useRef<UploadTask | null>(null);
+
+  const setUploadingStatus = (uploading: boolean) => {
+    setIsUploadingPdf(uploading);
+    if (onUploadingStateChange) {
+      onUploadingStateChange(uploading);
+    }
+  };
+
+  const handleCancelPdfUpload = () => {
+    if (pdfTaskRef.current) {
+      try {
+        pdfTaskRef.current.cancel();
+      } catch (err) {
+        console.warn("Error canceling upload task:", err);
+      }
+      pdfTaskRef.current = null;
+    }
+    setUploadingStatus(false);
+    setPdfUploadProgress(0);
+    setPdfUploadError("Upload canceled by user.");
+  };
 
   // Formatting helpers
   const insertFormatting = (tagStart: string, tagEnd: string = "") => {
@@ -92,23 +118,50 @@ export function CMSContentEditor({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
-      alert("Please select a valid .pdf file.");
+    const inputEl = e.target;
+
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      alert("Please select a valid PDF file (.pdf)");
+      inputEl.value = "";
       return;
     }
 
-    setIsUploadingPdf(true);
+    if (file.size > 25 * 1024 * 1024) {
+      alert(`The selected PDF file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size is 25MB.`);
+      inputEl.value = "";
+      return;
+    }
+
+    setUploadingStatus(true);
+    setPdfUploadProgress(0);
     setPdfUploadError(null);
 
     try {
-      const attachment = await uploadCMSFile(file, "general");
+      const attachment = await uploadCMSFile(
+        file,
+        "general",
+        (progress) => {
+          setPdfUploadProgress(progress.progressPercent);
+        },
+        (task) => {
+          pdfTaskRef.current = task;
+        },
+        25 * 1024 * 1024
+      );
       onPdfChange(attachment.url, attachment.filename);
     } catch (err) {
-      console.error("PDF upload error:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
-      setPdfUploadError(errMsg);
+      if (!errMsg.toLowerCase().includes("canceled")) {
+        console.error("PDF upload error:", err);
+        setPdfUploadError(errMsg);
+      } else {
+        console.info("PDF upload canceled by user.");
+      }
     } finally {
-      setIsUploadingPdf(false);
+      setUploadingStatus(false);
+      pdfTaskRef.current = null;
+      inputEl.value = "";
     }
   };
 
@@ -394,6 +447,8 @@ export function CMSContentEditor({
             <div style={{ display: "flex", gap: "8px" }}>
               <a
                 href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
                 download={pdfFileName || "attached_document.pdf"}
                 style={{ padding: "6px 12px", fontSize: "12px", background: "#166534", color: "#fff", borderRadius: "4px", textDecoration: "none", fontWeight: "bold" }}
               >
@@ -410,35 +465,64 @@ export function CMSContentEditor({
           </div>
         ) : (
           <div>
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              onChange={handlePdfFileUpload}
-              disabled={isUploadingPdf}
-              style={{ display: "none" }}
-              id="cms-pdf-upload-input"
-            />
-            <label
-              htmlFor="cms-pdf-upload-input"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 16px",
-                background: isUploadingPdf ? "#f3f4f6" : "#fff",
-                border: "1px solid var(--line)",
-                borderRadius: "4px",
-                fontSize: "13px",
-                fontWeight: "600",
-                cursor: isUploadingPdf ? "not-allowed" : "pointer",
-                color: "var(--ink)",
-              }}
-            >
-              {isUploadingPdf ? "⏳ Uploading PDF to Firebase Storage..." : "📄 Select PDF File (.pdf)"}
-            </label>
+            {isUploadingPdf ? (
+              <div style={{ padding: "14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e40af" }}>
+                    ⏳ Uploading PDF — {pdfUploadProgress}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCancelPdfUpload}
+                    style={{ padding: "4px 10px", fontSize: "12px", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+                  >
+                    Cancel Upload
+                  </button>
+                </div>
+                <div style={{ width: "100%", background: "#dbeafe", height: "8px", borderRadius: "4px", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${pdfUploadProgress}%`,
+                      background: "#2563eb",
+                      height: "100%",
+                      transition: "width 0.2s ease"
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handlePdfFileUpload}
+                  style={{ display: "none" }}
+                  id="cms-pdf-upload-input"
+                />
+                <label
+                  htmlFor="cms-pdf-upload-input"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 16px",
+                    background: "#fff",
+                    border: "1px solid var(--line)",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    color: "var(--ink)",
+                  }}
+                >
+                  📄 Select PDF File (.pdf)
+                </label>
+              </div>
+            )}
+
             {pdfUploadError && (
-              <div style={{ marginTop: "8px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "6px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
-                ❌ PDF Upload Failed: {pdfUploadError}. Please try again.
+              <div style={{ marginTop: "8px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "8px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
+                ❌ PDF Upload Error: {pdfUploadError}. Please try again.
               </div>
             )}
           </div>

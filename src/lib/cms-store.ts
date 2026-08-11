@@ -11,8 +11,9 @@ import {
 } from "firebase/firestore";
 import {
   ref,
-  uploadBytes,
-  getDownloadURL
+  uploadBytesResumable,
+  getDownloadURL,
+  UploadTask
 } from "firebase/storage";
 
 export type AttachmentMetadata = {
@@ -24,6 +25,13 @@ export type AttachmentMetadata = {
   size: number;
   uploadedAt: string;
 };
+
+export interface UploadProgressInfo {
+  bytesTransferred: number;
+  totalBytes: number;
+  progressPercent: number;
+  state: string;
+}
 
 export type DispatchPost = {
   id: string;
@@ -251,35 +259,114 @@ function notifyCMSListeners() {
   }
 }
 
-// 1. Storage Upload Function
-export async function uploadCMSFile(file: File, folder: "essays" | "dispatches" | "general" = "general"): Promise<AttachmentMetadata> {
+// 1. Storage Upload Function using Firebase uploadBytesResumable
+export async function uploadCMSFile(
+  file: File,
+  folder: "essays" | "dispatches" | "general" = "general",
+  onProgress?: (progress: UploadProgressInfo) => void,
+  onTaskCreated?: (task: UploadTask) => void,
+  maxSizeBytes: number = 25 * 1024 * 1024 // 25MB default
+): Promise<AttachmentMetadata> {
   if (!file) {
     throw new Error("No file provided for upload.");
   }
-  
+
+  if (file.size > maxSizeBytes) {
+    const sizeInMB = (maxSizeBytes / (1024 * 1024)).toFixed(0);
+    throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds maximum permitted limit of ${sizeInMB}MB.`);
+  }
+
   const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
   const storagePath = `cms_attachments/${folder}/${Date.now()}_${cleanName}`;
   const storageRef = ref(storage, storagePath);
 
-  try {
-    const snapshot = await uploadBytes(storageRef, file, {
-      contentType: file.type || "application/octet-stream"
-    });
-    const downloadUrl = await getDownloadURL(snapshot.ref);
+  console.log(`[Firebase Storage] Starting upload to bucket [${storage.app.options.storageBucket}] at path [${storagePath}] for file "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...`);
 
-    return {
-      id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      filename: file.name,
-      url: downloadUrl,
-      storagePath,
-      mimeType: file.type || "application/octet-stream",
-      size: file.size,
-      uploadedAt: new Date().toISOString()
-    };
-  } catch (err) {
-    console.error("Firebase Storage Upload Error:", err);
-    throw new Error(`Storage upload failed: ${err instanceof Error ? err.message : String(err)}`);
+  const uploadTask = uploadBytesResumable(storageRef, file, {
+    contentType: file.type || "application/octet-stream"
+  });
+
+  if (onTaskCreated) {
+    onTaskCreated(uploadTask);
   }
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const bytesTransferred = snapshot.bytesTransferred;
+        const totalBytes = snapshot.totalBytes || file.size;
+        const progressPercent = totalBytes > 0 ? Math.round((bytesTransferred / totalBytes) * 100) : 0;
+
+        if (onProgress) {
+          onProgress({
+            bytesTransferred,
+            totalBytes,
+            progressPercent,
+            state: snapshot.state
+          });
+        }
+      },
+      (error: any) => {
+        if (error?.code === "storage/canceled") {
+          console.info("[Firebase Storage] Upload canceled by user.");
+        } else {
+          console.error("Firebase Storage Upload Error:", {
+            code: error?.code,
+            message: error?.message,
+            serverResponse: error?.serverResponse,
+            name: error?.name,
+            rawError: error
+          });
+        }
+
+        let userFacingMsg = `Storage upload failed: ${error?.message || String(error)}`;
+
+        switch (error?.code) {
+          case "storage/unauthorized":
+            userFacingMsg = "Permission denied (storage/unauthorized). You do not have authorization to upload to Firebase Storage.";
+            break;
+          case "storage/unauthenticated":
+            userFacingMsg = "User unauthenticated (storage/unauthenticated). Please sign in to upload files.";
+            break;
+          case "storage/quota-exceeded":
+            userFacingMsg = "Firebase Storage quota exceeded (storage/quota-exceeded).";
+            break;
+          case "storage/retry-limit-exceeded":
+            userFacingMsg = "Network error / retry limit exceeded (storage/retry-limit-exceeded). Please check your connection.";
+            break;
+          case "storage/canceled":
+            userFacingMsg = "Upload was canceled by user (storage/canceled).";
+            break;
+          case "storage/unknown":
+            userFacingMsg = `An unknown Firebase Storage error occurred (storage/unknown). ${error?.serverResponse ? "Server response: " + JSON.stringify(error.serverResponse) : ""}`;
+            break;
+        }
+
+        const formattedError = new Error(userFacingMsg);
+        (formattedError as any).code = error?.code || "storage/unknown";
+        reject(formattedError);
+      },
+      async () => {
+        try {
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log(`[Firebase Storage] Upload complete! Download URL: ${downloadUrl}`);
+          resolve({
+            id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            filename: file.name,
+            url: downloadUrl,
+            storagePath,
+            mimeType: file.type || "application/octet-stream",
+            size: file.size,
+            uploadedAt: new Date().toISOString()
+          });
+        } catch (urlErr) {
+          console.error("[Firebase Storage] Failed to retrieve download URL:", urlErr);
+          reject(new Error(`Failed to retrieve download URL: ${urlErr instanceof Error ? urlErr.message : String(urlErr)}`));
+        }
+      }
+    );
+  });
 }
 
 // 2. Initialize and Fetch Authoritative CMS Data from Firestore
