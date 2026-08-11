@@ -1,12 +1,15 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { CMSContentEditor } from "../components/CMSContentEditor";
 import {
   getCMSData,
-  updateCMSEssays,
-  updateCMSDispatches,
+  saveEssay,
+  deleteEssay,
+  saveDispatch,
+  deleteDispatch,
   updateInquiryStatus,
   deleteInquiry,
   updateCMSSettings,
+  uploadCMSFile,
   DispatchPost,
   PressInquiryItem,
   SubscriberItem,
@@ -50,6 +53,18 @@ export function AdminPage() {
   const [subscribers, setSubscribers] = useState<SubscriberItem[]>(initialData.subscribers);
   const [settings, setSettings] = useState<CMSSettings>(initialData.settings);
 
+  // Async save/delete & upload states
+  const [isSavingEssay, setIsSavingEssay] = useState(false);
+  const [essaySaveError, setEssaySaveError] = useState<string | null>(null);
+
+  const [isSavingDispatch, setIsSavingDispatch] = useState(false);
+  const [dispatchSaveError, setDispatchSaveError] = useState<string | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   // Modals & Editors
   const [isEssayModalOpen, setIsEssayModalOpen] = useState(false);
   const [editingEssay, setEditingEssay] = useState<(Partial<Essay> & { _originalSlug?: string }) | null>(null);
@@ -76,43 +91,7 @@ export function AdminPage() {
   const [newPass, setNewPass] = useState("");
   const [settingsMsg, setSettingsMsg] = useState("");
 
-  const compressImage = (file: File, callback: (compressedUrl: string) => void) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (!dataUrl) return;
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        const maxDim = 1000;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          callback(canvas.toDataURL("image/jpeg", 0.75));
-        } else {
-          callback(dataUrl);
-        }
-      };
-      img.onerror = () => callback(dataUrl);
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Load store data synchronously
+  // Load store data synchronously and listen for updates
   const loadData = () => {
     const data = getCMSData();
     setEssays(data.essays);
@@ -121,6 +100,12 @@ export function AdminPage() {
     setSubscribers(data.subscribers);
     setSettings(data.settings);
   };
+
+  useEffect(() => {
+    const handleUpdate = () => loadData();
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
 
   // INSTANT CANCEL BUTTON HANDLER - Completely Synchronous State Reset
   const handleCancelAndShowLogin = () => {
@@ -173,9 +158,12 @@ export function AdminPage() {
   };
 
   // --- ESSAY HANDLERS ---
-  const handleSaveEssay = (e: FormEvent) => {
+  const handleSaveEssay = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingEssay || !editingEssay.title || !editingEssay.summary) return;
+
+    setIsSavingEssay(true);
+    setEssaySaveError(null);
 
     const contentArray = essayEditorMode === "html"
       ? [essayContentText]
@@ -187,8 +175,6 @@ export function AdminPage() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "");
-
-    const originalSlug = editingEssay._originalSlug || slug;
 
     const newEssay: Essay = {
       slug,
@@ -211,36 +197,37 @@ export function AdminPage() {
       location: editingEssay.location || "",
     };
 
-    const existingIndex = essays.findIndex((e) => e.slug === originalSlug || e.slug === slug);
-    let updatedList: Essay[];
-    if (existingIndex >= 0) {
-      updatedList = [...essays];
-      updatedList[existingIndex] = newEssay;
-    } else {
-      updatedList = [newEssay, ...essays];
+    try {
+      await saveEssay(newEssay);
+      setEssays(getCMSData().essays);
+      setIsEssayModalOpen(false);
+      setEditingEssay(null);
+    } catch (err) {
+      console.error("Failed to save essay to server:", err);
+      setEssaySaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSavingEssay(false);
     }
-
-    const saved = updateCMSEssays(updatedList);
-    setEssays([...saved]);
-    setIsEssayModalOpen(false);
-    setEditingEssay(null);
   };
 
   const handleDeleteEssay = (slug: string, title: string) => {
+    setDeleteError(null);
     setDeleteModal({ type: "essay", idOrSlug: slug, title });
   };
 
   // --- DISPATCH HANDLERS ---
-  const handleSaveDispatch = (e: FormEvent) => {
+  const handleSaveDispatch = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingDispatch || !editingDispatch.title || !editingDispatch.summary) return;
+
+    setIsSavingDispatch(true);
+    setDispatchSaveError(null);
 
     const contentArray = dispatchEditorMode === "html"
       ? [dispatchContentText]
       : dispatchContentText.split("\n\n").filter(Boolean);
 
     const id = editingDispatch.id || `disp-${Date.now()}`;
-    const originalId = editingDispatch._originalId || id;
     const slug =
       editingDispatch.slug ||
       editingDispatch.title
@@ -265,62 +252,79 @@ export function AdminPage() {
       imageUrl: editingDispatch.imageUrl || "",
     };
 
-    const existingIndex = dispatches.findIndex((d) => d.id === originalId || d.id === id);
-    let updatedList: DispatchPost[];
-    if (existingIndex >= 0) {
-      updatedList = [...dispatches];
-      updatedList[existingIndex] = newDispatch;
-    } else {
-      updatedList = [newDispatch, ...dispatches];
+    try {
+      await saveDispatch(newDispatch);
+      setDispatches(getCMSData().dispatches);
+      setIsDispatchModalOpen(false);
+      setEditingDispatch(null);
+    } catch (err) {
+      console.error("Failed to save dispatch to server:", err);
+      setDispatchSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSavingDispatch(false);
     }
-
-    const saved = updateCMSDispatches(updatedList);
-    setDispatches([...saved]);
-    setIsDispatchModalOpen(false);
-    setEditingDispatch(null);
   };
 
   const handleDeleteDispatch = (id: string, title: string) => {
+    setDeleteError(null);
     setDeleteModal({ type: "dispatch", idOrSlug: id, title });
   };
 
   // --- INQUIRY HANDLERS ---
-  const handleInquiryStatusChange = (id: string, status: "New" | "Reviewed" | "Archived") => {
-    const updated = updateInquiryStatus(id, status);
-    setInquiries([...updated]);
+  const handleInquiryStatusChange = async (id: string, status: "New" | "Reviewed" | "Archived") => {
+    try {
+      const updated = await updateInquiryStatus(id, status);
+      setInquiries([...updated]);
+    } catch (err) {
+      alert(`Failed to update inquiry status: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   const handleDeleteInquiryItem = (id: string, subject: string) => {
+    setDeleteError(null);
     setDeleteModal({ type: "inquiry", idOrSlug: id, title: subject });
   };
 
-  const confirmDeleteAction = () => {
+  const confirmDeleteAction = async () => {
     if (!deleteModal) return;
-    if (deleteModal.type === "essay") {
-      const updatedList = essays.filter((e) => e.slug !== deleteModal.idOrSlug);
-      const saved = updateCMSEssays(updatedList);
-      setEssays([...saved]);
-    } else if (deleteModal.type === "dispatch") {
-      const updatedList = dispatches.filter((d) => d.id !== deleteModal.idOrSlug);
-      const saved = updateCMSDispatches(updatedList);
-      setDispatches([...saved]);
-    } else if (deleteModal.type === "inquiry") {
-      const updated = deleteInquiry(deleteModal.idOrSlug);
-      setInquiries([...updated]);
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      if (deleteModal.type === "essay") {
+        await deleteEssay(deleteModal.idOrSlug);
+        setEssays(getCMSData().essays);
+      } else if (deleteModal.type === "dispatch") {
+        await deleteDispatch(deleteModal.idOrSlug);
+        setDispatches(getCMSData().dispatches);
+      } else if (deleteModal.type === "inquiry") {
+        await deleteInquiry(deleteModal.idOrSlug);
+        setInquiries(getCMSData().inquiries);
+      }
+      setDeleteModal(null);
+    } catch (err) {
+      console.error("Failed to delete item from server:", err);
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsDeleting(false);
     }
-    setDeleteModal(null);
   };
 
   // --- SETTINGS HANDLER ---
-  const handleSaveSettings = (e: FormEvent) => {
+  const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
-    const updated = updateCMSSettings(settings);
-    setSettings(updated);
-    setSettingsMsg("✓ General settings updated successfully!");
-    setTimeout(() => setSettingsMsg(""), 4000);
+    setSettingsMsg("⏳ Updating settings on server...");
+    try {
+      const updated = await updateCMSSettings(settings);
+      setSettings(updated);
+      setSettingsMsg("✓ General settings updated successfully!");
+    } catch (err) {
+      setSettingsMsg(`❌ Settings update failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    setTimeout(() => setSettingsMsg(""), 5000);
   };
 
-  const handleChangePassword = (e: FormEvent) => {
+  const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (currentPass !== settings.adminPasswordRaw) {
       setPassMsg("❌ Incorrect current password.");
@@ -331,14 +335,19 @@ export function AdminPage() {
       return;
     }
 
-    const updated = updateCMSSettings({
-      adminPasswordRaw: newPass,
-      adminPasswordHash: newPass,
-    });
-    setSettings(updated);
-    setPassMsg("✓ Password updated successfully!");
-    setCurrentPass("");
-    setNewPass("");
+    setPassMsg("⏳ Saving new password on server...");
+    try {
+      const updated = await updateCMSSettings({
+        adminPasswordRaw: newPass,
+        adminPasswordHash: newPass,
+      });
+      setSettings(updated);
+      setPassMsg("✓ Password updated successfully!");
+      setCurrentPass("");
+      setNewPass("");
+    } catch (err) {
+      setPassMsg(`❌ Password update failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
     setTimeout(() => setPassMsg(""), 4000);
   };
 
@@ -1186,17 +1195,24 @@ export function AdminPage() {
                         whiteSpace: "nowrap"
                       }}
                     >
-                      📷 Upload Photo
+                      {isUploadingImage ? "⏳ Uploading..." : "📷 Upload Photo"}
                       <input
                         type="file"
                         accept="image/*"
                         style={{ display: "none" }}
-                        onChange={(e) => {
+                        disabled={isUploadingImage}
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          compressImage(file, (compressedUrl) => {
-                            setEditingEssay((prev) => prev ? { ...prev, imageUrl: compressedUrl } : null);
-                          });
+                          setIsUploadingImage(true);
+                          try {
+                            const attachment = await uploadCMSFile(file, "essays");
+                            setEditingEssay((prev) => prev ? { ...prev, imageUrl: attachment.url } : null);
+                          } catch (err) {
+                            alert(`Image upload to storage failed: ${err instanceof Error ? err.message : String(err)}`);
+                          } finally {
+                            setIsUploadingImage(false);
+                          }
                         }}
                       />
                     </label>
@@ -1301,12 +1317,28 @@ export function AdminPage() {
                 />
               </div>
 
+              {essaySaveError && (
+                <div style={{ marginBottom: "16px", padding: "12px 16px", background: "#fef2f2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", fontSize: "13px" }}>
+                  ❌ <strong>Server Save Failed:</strong> {essaySaveError}. Your unsaved edits are preserved above. Please review and click &quot;Retry Save Essay&quot;.
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setIsEssayModalOpen(false)} style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEssayModalOpen(false)}
+                  disabled={isSavingEssay}
+                  style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="gold-button" style={{ border: 0, padding: "10px 20px" }}>
-                  Save Essay
+                <button
+                  type="submit"
+                  disabled={isSavingEssay}
+                  className="gold-button"
+                  style={{ border: 0, padding: "10px 20px", opacity: isSavingEssay ? 0.7 : 1, cursor: isSavingEssay ? "not-allowed" : "pointer" }}
+                >
+                  {isSavingEssay ? "⏳ Saving to Server..." : essaySaveError ? "Retry Save Essay" : "Save Essay"}
                 </button>
               </div>
             </form>
@@ -1380,12 +1412,28 @@ export function AdminPage() {
                 />
               </div>
 
+              {dispatchSaveError && (
+                <div style={{ marginBottom: "16px", padding: "12px 16px", background: "#fef2f2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", fontSize: "13px" }}>
+                  ❌ <strong>Server Save Failed:</strong> {dispatchSaveError}. Your unsaved edits are preserved above. Please review and click &quot;Retry Save Dispatch&quot;.
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setIsDispatchModalOpen(false)} style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDispatchModalOpen(false)}
+                  disabled={isSavingDispatch}
+                  style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="gold-button" style={{ border: 0, padding: "10px 20px" }}>
-                  Save Dispatch
+                <button
+                  type="submit"
+                  disabled={isSavingDispatch}
+                  className="gold-button"
+                  style={{ border: 0, padding: "10px 20px", opacity: isSavingDispatch ? 0.7 : 1, cursor: isSavingDispatch ? "not-allowed" : "pointer" }}
+                >
+                  {isSavingDispatch ? "⏳ Saving to Server..." : dispatchSaveError ? "Retry Save Dispatch" : "Save Dispatch"}
                 </button>
               </div>
             </form>
@@ -1400,13 +1448,19 @@ export function AdminPage() {
             <h3 style={{ fontFamily: "Georgia, serif", fontSize: "20px", marginTop: 0, marginBottom: "12px", color: "#991b1b", display: "flex", alignItems: "center", gap: "8px" }}>
               <span>⚠️</span> Confirm Deletion
             </h3>
-            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", marginBottom: "24px" }}>
-              Are you sure you want to delete <strong>"{deleteModal.title}"</strong>? This item will be permanently removed.
+            <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.6", marginBottom: "16px" }}>
+              Are you sure you want to delete <strong>&quot;{deleteModal.title}&quot;</strong>? This item will be permanently removed from the server database.
             </p>
+            {deleteError && (
+              <div style={{ marginBottom: "16px", padding: "10px 14px", background: "#fef2f2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", fontSize: "12px" }}>
+                ❌ Delete failed on server: {deleteError}. Please try again.
+              </div>
+            )}
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
               <button
                 type="button"
                 onClick={() => setDeleteModal(null)}
+                disabled={isDeleting}
                 style={{ padding: "10px 18px", border: "1px solid var(--line)", background: "#fff", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}
               >
                 Cancel
@@ -1414,9 +1468,10 @@ export function AdminPage() {
               <button
                 type="button"
                 onClick={confirmDeleteAction}
-                style={{ padding: "10px 18px", border: "none", background: "#dc2626", color: "#fff", fontWeight: "bold", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}
+                disabled={isDeleting}
+                style={{ padding: "10px 18px", border: "none", background: "#dc2626", color: "#fff", fontWeight: "bold", borderRadius: "6px", cursor: isDeleting ? "not-allowed" : "pointer", opacity: isDeleting ? 0.7 : 1, fontSize: "13px" }}
               >
-                Delete Permanently
+                {isDeleting ? "⏳ Deleting..." : "Delete Permanently"}
               </button>
             </div>
           </div>

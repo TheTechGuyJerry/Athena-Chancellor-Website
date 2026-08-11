@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { uploadCMSFile } from "../lib/cms-store";
 
 interface CMSContentEditorProps {
   value: string;
@@ -22,6 +23,8 @@ export function CMSContentEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [htmlFileName, setHtmlFileName] = useState<string>("");
   const [htmlPreview, setHtmlPreview] = useState<boolean>(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState<boolean>(false);
+  const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
 
   // Formatting helpers
   const insertFormatting = (tagStart: string, tagEnd: string = "") => {
@@ -84,8 +87,8 @@ export function CMSContentEditor({
     reader.readAsText(file);
   };
 
-  // PDF Upload handler
-  const handlePdfFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // PDF Upload handler using Firebase Storage
+  const handlePdfFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -94,14 +97,19 @@ export function CMSContentEditor({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        onPdfChange(dataUrl, file.name);
-      }
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingPdf(true);
+    setPdfUploadError(null);
+
+    try {
+      const attachment = await uploadCMSFile(file, "general");
+      onPdfChange(attachment.url, attachment.filename);
+    } catch (err) {
+      console.error("PDF upload error:", err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setPdfUploadError(errMsg);
+    } finally {
+      setIsUploadingPdf(false);
+    }
   };
 
   return (
@@ -368,7 +376,7 @@ export function CMSContentEditor({
           📎 PDF Document Attachment (For Reader Downloads)
         </label>
         <p style={{ fontSize: "12px", color: "var(--muted)", margin: "0 0 10px 0" }}>
-          Attach an official PDF file so readers can click "Download PDF" on the article page to receive this exact document.
+          Attach an official PDF file so readers can click &quot;Download PDF&quot; on the article page to receive this exact document.
         </p>
 
         {pdfUrl && pdfUrl !== "#" ? (
@@ -406,6 +414,7 @@ export function CMSContentEditor({
               type="file"
               accept=".pdf,application/pdf"
               onChange={handlePdfFileUpload}
+              disabled={isUploadingPdf}
               style={{ display: "none" }}
               id="cms-pdf-upload-input"
             />
@@ -416,17 +425,22 @@ export function CMSContentEditor({
                 alignItems: "center",
                 gap: "8px",
                 padding: "8px 16px",
-                background: "#fff",
+                background: isUploadingPdf ? "#f3f4f6" : "#fff",
                 border: "1px solid var(--line)",
                 borderRadius: "4px",
                 fontSize: "13px",
                 fontWeight: "600",
-                cursor: "pointer",
+                cursor: isUploadingPdf ? "not-allowed" : "pointer",
                 color: "var(--ink)",
               }}
             >
-              📄 Select PDF File (.pdf)
+              {isUploadingPdf ? "⏳ Uploading PDF to Firebase Storage..." : "📄 Select PDF File (.pdf)"}
             </label>
+            {pdfUploadError && (
+              <div style={{ marginTop: "8px", color: "#b91c1c", fontSize: "12px", background: "#fef2f2", padding: "6px 12px", borderRadius: "4px", border: "1px solid #fca5a5" }}>
+                ❌ PDF Upload Failed: {pdfUploadError}. Please try again.
+              </div>
+            )}
           </div>
         )}
       </div>

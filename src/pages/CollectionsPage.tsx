@@ -5,10 +5,19 @@ import { Essay } from "../lib/essays";
 import { Archive } from "../components/Archive";
 
 export function CollectionsPage() {
-  const [essays] = useState<Essay[]>(() => {
+  const [essays, setEssays] = useState<Essay[]>(() => {
     const data = getCMSData();
     return data.essays;
   });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setEssays(getCMSData().essays);
+    };
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
+
   const [searchParams] = useSearchParams();
   const search = searchParams.get("search") || "";
 

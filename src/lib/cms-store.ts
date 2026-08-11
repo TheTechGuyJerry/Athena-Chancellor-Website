@@ -1,4 +1,29 @@
 import { essays as initialEssays, Essay } from "./essays";
+import { db, storage } from "./firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  onSnapshot
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "firebase/storage";
+
+export type AttachmentMetadata = {
+  id: string;
+  filename: string;
+  url: string;
+  storagePath: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+};
 
 export type DispatchPost = {
   id: string;
@@ -15,6 +40,7 @@ export type DispatchPost = {
   pdfFileName?: string;
   isHtmlUpload?: boolean;
   imageUrl?: string;
+  attachments?: AttachmentMetadata[];
 };
 
 export type PressInquiryItem = {
@@ -208,156 +234,309 @@ const initialSettings: CMSSettings = {
   maintenanceMode: false
 };
 
-const STORAGE_KEY = "osita_cms_local_db_v5";
+let inMemoryData: CMSData = {
+  essays: initialEssays,
+  dispatches: initialDispatches,
+  inquiries: initialInquiries,
+  subscribers: initialSubscribers,
+  settings: initialSettings
+};
 
-let inMemoryData: CMSData | null = null;
+let isInitializingPromise: Promise<CMSData> | null = null;
+let isRealtimeListenerAttached = false;
 
-export function getCMSData(): CMSData {
-  if (inMemoryData) {
-    return inMemoryData;
-  }
-
-  if (typeof window === "undefined") {
-    return {
-      essays: initialEssays,
-      dispatches: initialDispatches,
-      inquiries: initialInquiries,
-      subscribers: initialSubscribers,
-      settings: initialSettings
-    };
-  }
-
-  try {
-    let raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      raw = sessionStorage.getItem(STORAGE_KEY);
-    }
-
-    if (!raw) {
-      const defaultData: CMSData = {
-        essays: initialEssays,
-        dispatches: initialDispatches,
-        inquiries: initialInquiries,
-        subscribers: initialSubscribers,
-        settings: initialSettings
-      };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
-      } catch {
-        // Ignore quota error on initial seed
-      }
-      inMemoryData = defaultData;
-      return defaultData;
-    }
-
-    const parsed = JSON.parse(raw);
-    const savedEssays: Essay[] = Array.isArray(parsed.essays) && parsed.essays.length > 0 ? parsed.essays : initialEssays;
-    const savedDispatches: DispatchPost[] = Array.isArray(parsed.dispatches) && parsed.dispatches.length > 0 ? parsed.dispatches : initialDispatches;
-
-    inMemoryData = {
-      essays: savedEssays,
-      dispatches: savedDispatches,
-      inquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : initialInquiries,
-      subscribers: Array.isArray(parsed.subscribers) ? parsed.subscribers : initialSubscribers,
-      settings: { ...initialSettings, ...(parsed.settings || {}) }
-    };
-    return inMemoryData;
-  } catch (err) {
-    console.error("Error reading CMS data:", err);
-    inMemoryData = {
-      essays: initialEssays,
-      dispatches: initialDispatches,
-      inquiries: initialInquiries,
-      subscribers: initialSubscribers,
-      settings: initialSettings
-    };
-    return inMemoryData;
-  }
-}
-
-export function saveCMSData(data: CMSData) {
-  inMemoryData = data;
+function notifyCMSListeners() {
   if (typeof window !== "undefined") {
-    try {
-      const serialized = JSON.stringify(data);
-      localStorage.setItem(STORAGE_KEY, serialized);
-      sessionStorage.setItem(STORAGE_KEY, serialized);
-    } catch (err) {
-      console.warn("Storage quota limit exceeded. Saving light dataset version to localStorage...", err);
-      try {
-        // Fallback: If image size is too large for localStorage quota, compress/strip images for local storage backup
-        const lightData: CMSData = {
-          ...data,
-          essays: data.essays.map((e) => ({
-            ...e,
-            // Keep image if it's short URL, or trim data URL if quota hit
-            imageUrl: e.imageUrl && e.imageUrl.length > 500000 ? "" : e.imageUrl
-          })),
-          dispatches: data.dispatches.map((d) => ({
-            ...d,
-            imageUrl: d.imageUrl && d.imageUrl.length > 500000 ? "" : d.imageUrl
-          }))
-        };
-        const lightSerialized = JSON.stringify(lightData);
-        localStorage.setItem(STORAGE_KEY, lightSerialized);
-        sessionStorage.setItem(STORAGE_KEY, lightSerialized);
-      } catch (innerErr) {
-        console.warn("Could not write to localStorage, keeping in-memory state:", innerErr);
-      }
-    }
-
-    // Dispatch global event so subscribers update immediately
     window.dispatchEvent(new Event("osita_cms_updated"));
   }
 }
 
-export function updateCMSEssays(newEssays: Essay[]) {
-  const current = getCMSData();
-  current.essays = newEssays;
-  saveCMSData(current);
-  return newEssays;
+// 1. Storage Upload Function
+export async function uploadCMSFile(file: File, folder: "essays" | "dispatches" | "general" = "general"): Promise<AttachmentMetadata> {
+  if (!file) {
+    throw new Error("No file provided for upload.");
+  }
+  
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const storagePath = `cms_attachments/${folder}/${Date.now()}_${cleanName}`;
+  const storageRef = ref(storage, storagePath);
+
+  try {
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type || "application/octet-stream"
+    });
+    const downloadUrl = await getDownloadURL(snapshot.ref);
+
+    return {
+      id: `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      filename: file.name,
+      url: downloadUrl,
+      storagePath,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+      uploadedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.error("Firebase Storage Upload Error:", err);
+    throw new Error(`Storage upload failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
-export function updateCMSDispatches(newDispatches: DispatchPost[]) {
-  const current = getCMSData();
-  current.dispatches = newDispatches;
-  saveCMSData(current);
-  return newDispatches;
+// 2. Initialize and Fetch Authoritative CMS Data from Firestore
+export async function initCMSStore(): Promise<CMSData> {
+  if (isInitializingPromise) {
+    return isInitializingPromise;
+  }
+
+  isInitializingPromise = (async () => {
+    try {
+      // Setup Realtime Listeners once
+      setupRealtimeListeners();
+
+      // Fetch Essays
+      const essaysSnap = await getDocs(collection(db, "essays"));
+      let fetchedEssays: Essay[] = [];
+      if (!essaysSnap.empty) {
+        fetchedEssays = essaysSnap.docs.map(docSnap => docSnap.data() as Essay);
+      } else {
+        console.log("Firestore essays collection is empty. Migrating initial essays to backend...");
+        for (const essay of initialEssays) {
+          await setDoc(doc(db, "essays", essay.slug), essay);
+        }
+        fetchedEssays = [...initialEssays];
+      }
+
+      // Fetch Dispatches
+      const dispatchesSnap = await getDocs(collection(db, "dispatches"));
+      let fetchedDispatches: DispatchPost[] = [];
+      if (!dispatchesSnap.empty) {
+        fetchedDispatches = dispatchesSnap.docs.map(docSnap => docSnap.data() as DispatchPost);
+      } else {
+        console.log("Firestore dispatches collection is empty. Migrating initial dispatches to backend...");
+        for (const disp of initialDispatches) {
+          await setDoc(doc(db, "dispatches", disp.id), disp);
+        }
+        fetchedDispatches = [...initialDispatches];
+      }
+
+      // Fetch Inquiries
+      const inquiriesSnap = await getDocs(collection(db, "inquiries"));
+      let fetchedInquiries: PressInquiryItem[] = [];
+      if (!inquiriesSnap.empty) {
+        fetchedInquiries = inquiriesSnap.docs.map(docSnap => docSnap.data() as PressInquiryItem);
+      } else {
+        for (const inq of initialInquiries) {
+          await setDoc(doc(db, "inquiries", inq.id), inq);
+        }
+        fetchedInquiries = [...initialInquiries];
+      }
+
+      // Fetch Subscribers
+      const subscribersSnap = await getDocs(collection(db, "subscribers"));
+      let fetchedSubscribers: SubscriberItem[] = [];
+      if (!subscribersSnap.empty) {
+        fetchedSubscribers = subscribersSnap.docs.map(docSnap => docSnap.data() as SubscriberItem);
+      } else {
+        for (const sub of initialSubscribers) {
+          await setDoc(doc(db, "subscribers", sub.id), sub);
+        }
+        fetchedSubscribers = [...initialSubscribers];
+      }
+
+      // Fetch Settings
+      const settingsRef = doc(db, "settings", "global");
+      const settingsSnap = await getDoc(settingsRef);
+      let fetchedSettings: CMSSettings = initialSettings;
+      if (settingsSnap.exists()) {
+        fetchedSettings = { ...initialSettings, ...settingsSnap.data() } as CMSSettings;
+      } else {
+        await setDoc(settingsRef, initialSettings);
+      }
+
+      inMemoryData = {
+        essays: fetchedEssays,
+        dispatches: fetchedDispatches,
+        inquiries: fetchedInquiries,
+        subscribers: fetchedSubscribers,
+        settings: fetchedSettings
+      };
+
+      notifyCMSListeners();
+      return inMemoryData;
+    } catch (err) {
+      console.error("Error connecting to Firestore backend during CMS init:", err);
+      return inMemoryData;
+    }
+  })();
+
+  return isInitializingPromise;
 }
 
-export function addCMSInquiry(inquiry: Omit<PressInquiryItem, "id" | "date" | "status">) {
-  const current = getCMSData();
+// 3. Realtime Listeners
+function setupRealtimeListeners() {
+  if (isRealtimeListenerAttached || typeof window === "undefined") return;
+  isRealtimeListenerAttached = true;
+
+  try {
+    onSnapshot(collection(db, "essays"), (snap) => {
+      if (!snap.empty) {
+        inMemoryData.essays = snap.docs.map(d => d.data() as Essay);
+        notifyCMSListeners();
+      }
+    }, (err) => console.error("Realtime essays sync error:", err));
+
+    onSnapshot(collection(db, "dispatches"), (snap) => {
+      if (!snap.empty) {
+        inMemoryData.dispatches = snap.docs.map(d => d.data() as DispatchPost);
+        notifyCMSListeners();
+      }
+    }, (err) => console.error("Realtime dispatches sync error:", err));
+
+    onSnapshot(collection(db, "inquiries"), (snap) => {
+      inMemoryData.inquiries = snap.docs.map(d => d.data() as PressInquiryItem);
+      notifyCMSListeners();
+    }, (err) => console.error("Realtime inquiries sync error:", err));
+
+    onSnapshot(collection(db, "subscribers"), (snap) => {
+      inMemoryData.subscribers = snap.docs.map(d => d.data() as SubscriberItem);
+      notifyCMSListeners();
+    }, (err) => console.error("Realtime subscribers sync error:", err));
+
+    onSnapshot(doc(db, "settings", "global"), (snap) => {
+      if (snap.exists()) {
+        inMemoryData.settings = { ...initialSettings, ...snap.data() } as CMSSettings;
+        notifyCMSListeners();
+      }
+    }, (err) => console.error("Realtime settings sync error:", err));
+  } catch (e) {
+    console.error("Could not bind Firestore realtime listeners:", e);
+  }
+}
+
+// Automatically start background init on module load
+if (typeof window !== "undefined") {
+  initCMSStore().catch(e => console.error("Auto initCMSStore failed:", e));
+}
+
+// 4. Synchronous Read Wrapper
+export function getCMSData(): CMSData {
+  return inMemoryData;
+}
+
+// 5. Backend Persistence Operations (Async + Strict Error Handling)
+
+export async function saveEssay(essay: Essay): Promise<void> {
+  if (!essay.slug) {
+    throw new Error("Essay URL slug is required.");
+  }
+  const cleanDoc = JSON.parse(JSON.stringify(essay));
+  try {
+    // Write to Firestore server FIRST
+    await setDoc(doc(db, "essays", essay.slug), cleanDoc);
+    
+    const idx = inMemoryData.essays.findIndex(e => e.slug === essay.slug);
+    if (idx >= 0) {
+      inMemoryData.essays[idx] = cleanDoc;
+    } else {
+      inMemoryData.essays.unshift(cleanDoc);
+    }
+    notifyCMSListeners();
+  } catch (err) {
+    console.error("Backend save failure for essay:", err);
+    throw new Error(`Server write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function deleteEssay(slug: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "essays", slug));
+    inMemoryData.essays = inMemoryData.essays.filter(e => e.slug !== slug);
+    notifyCMSListeners();
+  } catch (err) {
+    console.error("Backend delete failure for essay:", err);
+    throw new Error(`Server delete failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function saveDispatch(dispatch: DispatchPost): Promise<void> {
+  if (!dispatch.id) {
+    throw new Error("Dispatch ID is required.");
+  }
+  const cleanDoc = JSON.parse(JSON.stringify(dispatch));
+  try {
+    await setDoc(doc(db, "dispatches", dispatch.id), cleanDoc);
+    const idx = inMemoryData.dispatches.findIndex(d => d.id === dispatch.id);
+    if (idx >= 0) {
+      inMemoryData.dispatches[idx] = cleanDoc;
+    } else {
+      inMemoryData.dispatches.unshift(cleanDoc);
+    }
+    notifyCMSListeners();
+  } catch (err) {
+    console.error("Backend save failure for dispatch:", err);
+    throw new Error(`Server write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function deleteDispatch(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "dispatches", id));
+    inMemoryData.dispatches = inMemoryData.dispatches.filter(d => d.id !== id);
+    notifyCMSListeners();
+  } catch (err) {
+    console.error("Backend delete failure for dispatch:", err);
+    throw new Error(`Server delete failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function addCMSInquiry(inquiry: Omit<PressInquiryItem, "id" | "date" | "status">): Promise<PressInquiryItem> {
   const newItem: PressInquiryItem = {
     ...inquiry,
     id: `inq-${Date.now()}`,
     date: new Date().toISOString().split("T")[0],
     status: "New"
   };
-  current.inquiries.unshift(newItem);
-  saveCMSData(current);
-  return newItem;
-}
-
-export function updateInquiryStatus(id: string, status: "New" | "Reviewed" | "Archived") {
-  const current = getCMSData();
-  const item = current.inquiries.find(i => i.id === id);
-  if (item) {
-    item.status = status;
-    saveCMSData(current);
+  try {
+    await setDoc(doc(db, "inquiries", newItem.id), newItem);
+    inMemoryData.inquiries.unshift(newItem);
+    notifyCMSListeners();
+    return newItem;
+  } catch (err) {
+    console.error("Backend save failure for inquiry:", err);
+    throw new Error(`Server write failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-  return current.inquiries;
 }
 
-export function deleteInquiry(id: string) {
-  const current = getCMSData();
-  current.inquiries = current.inquiries.filter(i => i.id !== id);
-  saveCMSData(current);
-  return current.inquiries;
+export async function updateInquiryStatus(id: string, status: "New" | "Reviewed" | "Archived"): Promise<PressInquiryItem[]> {
+  const item = inMemoryData.inquiries.find(i => i.id === id);
+  if (item) {
+    const updated = { ...item, status };
+    try {
+      await setDoc(doc(db, "inquiries", id), updated);
+      item.status = status;
+      notifyCMSListeners();
+    } catch (err) {
+      console.error("Backend update failure for inquiry:", err);
+      throw new Error(`Server update failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return inMemoryData.inquiries;
 }
 
-export function addCMSSubscriber(email: string, source = "Website") {
-  const current = getCMSData();
-  const existing = current.subscribers.find(s => s.email.toLowerCase() === email.toLowerCase());
+export async function deleteInquiry(id: string): Promise<PressInquiryItem[]> {
+  try {
+    await deleteDoc(doc(db, "inquiries", id));
+    inMemoryData.inquiries = inMemoryData.inquiries.filter(i => i.id !== id);
+    notifyCMSListeners();
+  } catch (err) {
+    console.error("Backend delete failure for inquiry:", err);
+    throw new Error(`Server delete failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return inMemoryData.inquiries;
+}
+
+export async function addCMSSubscriber(email: string, source = "Website"): Promise<SubscriberItem> {
+  const existing = inMemoryData.subscribers.find(s => s.email.toLowerCase() === email.toLowerCase());
   if (existing) return existing;
 
   const newSub: SubscriberItem = {
@@ -366,14 +545,39 @@ export function addCMSSubscriber(email: string, source = "Website") {
     date: new Date().toISOString().split("T")[0],
     source
   };
-  current.subscribers.unshift(newSub);
-  saveCMSData(current);
-  return newSub;
+  try {
+    await setDoc(doc(db, "subscribers", newSub.id), newSub);
+    inMemoryData.subscribers.unshift(newSub);
+    notifyCMSListeners();
+    return newSub;
+  } catch (err) {
+    console.error("Backend save failure for subscriber:", err);
+    throw new Error(`Server write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
-export function updateCMSSettings(newSettings: Partial<CMSSettings>) {
-  const current = getCMSData();
-  current.settings = { ...current.settings, ...newSettings };
-  saveCMSData(current);
-  return current.settings;
+export async function updateCMSSettings(newSettings: Partial<CMSSettings>): Promise<CMSSettings> {
+  const merged = { ...inMemoryData.settings, ...newSettings };
+  try {
+    await setDoc(doc(db, "settings", "global"), merged);
+    inMemoryData.settings = merged;
+    notifyCMSListeners();
+    return merged;
+  } catch (err) {
+    console.error("Backend save failure for settings:", err);
+    throw new Error(`Server write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// Legacy wrappers for compatibility
+export function updateCMSEssays(newEssays: Essay[]) {
+  inMemoryData.essays = newEssays;
+  notifyCMSListeners();
+  return newEssays;
+}
+
+export function updateCMSDispatches(newDispatches: DispatchPost[]) {
+  inMemoryData.dispatches = newDispatches;
+  notifyCMSListeners();
+  return newDispatches;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
@@ -11,29 +11,38 @@ export function EssayDetailPage() {
   
   const currentSlug = pathSlug || querySlug || "";
 
+  const [essays, setEssays] = useState<Essay[]>(() => getCMSData().essays);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setEssays(getCMSData().essays);
+    };
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentSlug]);
 
   const essay = useMemo<Essay | null>(() => {
-    const data = getCMSData();
-    if (!currentSlug) return data.essays[0] || null;
+    if (!currentSlug) return essays[0] || null;
 
     // 1. Direct match
-    let found = data.essays.find((e) => e.slug === currentSlug);
+    let found = essays.find((e) => e.slug === currentSlug);
     if (found) return found;
 
     // 2. Partial/fuzzy match (e.g. 'ekulu')
-    found = data.essays.find((e) => e.slug.includes(currentSlug) || currentSlug.includes(e.slug));
+    found = essays.find((e) => e.slug.includes(currentSlug) || currentSlug.includes(e.slug));
     if (found) return found;
 
     // 3. Match title keywords
     const lower = currentSlug.toLowerCase();
-    found = data.essays.find((e) => e.title.toLowerCase().includes(lower) || lower.includes("ekulu"));
+    found = essays.find((e) => e.title.toLowerCase().includes(lower) || lower.includes("ekulu"));
     if (found) return found;
 
-    return data.essays[0] || null;
-  }, [currentSlug]);
+    return essays[0] || null;
+  }, [currentSlug, essays]);
 
   if (!essay) {
     return (

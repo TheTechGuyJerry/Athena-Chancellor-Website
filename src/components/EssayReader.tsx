@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Essay, essays as allEssays } from "../lib/essays";
+import { Essay } from "../lib/essays";
+import { getCMSData } from "../lib/cms-store";
 
 interface EssayReaderProps {
   essay: Essay;
@@ -41,7 +42,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
   };
 
   // Find 3 related essays excluding current
-  const relatedEssays = allEssays
+  const relatedEssays = (getCMSData().essays || [])
     .filter((e) => e.slug !== essay.slug)
     .slice(0, 3);
 

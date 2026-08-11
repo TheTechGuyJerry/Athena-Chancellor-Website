@@ -2,10 +2,19 @@ import { useState, useEffect, FormEvent } from "react";
 import { getCMSData, addCMSSubscriber, DispatchPost } from "../lib/cms-store";
 
 export function BlogPage() {
-  const [posts] = useState<DispatchPost[]>(() => {
+  const [posts, setPosts] = useState<DispatchPost[]>(() => {
     const data = getCMSData();
     return data.dispatches.filter((p) => p.published !== false);
   });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const data = getCMSData();
+      setPosts(data.dispatches.filter((p) => p.published !== false));
+    };
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => window.removeEventListener("osita_cms_updated", handleUpdate);
+  }, []);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
   const [subEmail, setSubEmail] = useState("");
