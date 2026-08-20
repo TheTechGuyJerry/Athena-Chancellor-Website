@@ -1,8 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { EssayReader } from "../components/EssayReader";
+import { SEOHead } from "../components/SEOHead";
+import { NotFoundPage } from "./NotFoundPage";
+import { stripHtml } from "../lib/url-utils";
 
 export function EssayDetailPage() {
   const { slug: pathSlug } = useParams<{ slug: string }>();
@@ -41,23 +44,34 @@ export function EssayDetailPage() {
     found = essays.find((e) => e.title.toLowerCase().includes(lower) || lower.includes("ekulu"));
     if (found) return found;
 
-    return essays[0] || null;
+    return null; // Don't fallback to essays[0] if specific slug requested
   }, [currentSlug, essays]);
 
   if (!essay) {
-    return (
-      <main className="wrap" style={{ paddingBlock: "100px", textAlign: "center" }}>
-        <h1>Essay Not Found</h1>
-        <p>The essay you are looking for does not exist or has been relocated.</p>
-        <Link to="/collections" className="gold-button" style={{ marginTop: "24px", display: "inline-block" }}>
-          Return to Archive
-        </Link>
-      </main>
-    );
+    if (!currentSlug && essays.length === 0) {
+      return (
+        <main className="wrap" style={{ paddingBlock: "100px", textAlign: "center" }}>
+          <h1>No Essays Available</h1>
+        </main>
+      );
+    }
+    return <NotFoundPage message="The essay you are looking for does not exist or has been relocated." />;
   }
 
   return (
     <main style={{ paddingBlock: "32px 80px", background: "#08090d", minHeight: "100vh" }}>
+      <SEOHead
+        title={`${essay.title} | Chief Osita Chidoka`}
+        description={stripHtml(essay.summary || essay.subtitle)}
+        canonicalPath={`/collections/${essay.slug}`}
+        type="article"
+        image={essay.imageUrl}
+        article={{
+          publishedTime: new Date(`${essay.month} 1, ${essay.year}`).toISOString(),
+          author: "Osita Chidoka",
+          section: "Essays & Speeches",
+        }}
+      />
       <div className="wrap-wide">
         <EssayReader essay={essay} isModal={false} />
       </div>

@@ -84,8 +84,8 @@ export function JoinForm({ mentorship = false }: { mentorship?: boolean }) {
         )}
       </div>
 
-      <Field label={mentorship ? "Why do you want to join this programme? *" : "Why do you want to join Unlock Naija?"}>
-        <textarea rows={5} required={mentorship} />
+      <Field label="Why do you want to join this programme? *">
+        <textarea rows={5} required />
       </Field>
 
       {mentorship && (
@@ -100,7 +100,7 @@ export function JoinForm({ mentorship = false }: { mentorship?: boolean }) {
       )}
 
       <button className="form-submit" type="submit">
-        {mentorship ? "Submit application" : "Join now"}
+        Submit application
       </button>
     </form>
   );
@@ -115,9 +115,14 @@ export function PressForm() {
   const [phone, setPhone] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [spamAnswer, setSpamAnswer] = useState("");
 
   function go(e: FormEvent) {
     e.preventDefault();
+    if (spamAnswer.trim() !== "5") {
+      alert("Spam check failed. Please answer the math question correctly.");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -167,6 +172,9 @@ export function PressForm() {
       </Field>
       <Field label="Message *">
         <textarea rows={6} value={message} onChange={(e) => setMessage(e.target.value)} required />
+      </Field>
+      <Field label="Spam Protection: What is 2 + 3? *">
+        <input type="text" value={spamAnswer} onChange={(e) => setSpamAnswer(e.target.value)} required />
       </Field>
       <button className="form-submit" type="submit" disabled={submitting}>
         {submitting ? "Sending..." : "Send inquiry"}

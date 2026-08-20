@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
+import { SEOHead } from "../components/SEOHead";
+import { SITE_CONFIG } from "../lib/site-config";
 
 const institutions = [
   ["The Canon", "Essays and long-form writing on governance, leadership, and institutional development.", "/collections", "BROWSE WRITING"],
@@ -37,6 +39,34 @@ export function HomePage() {
 
   return (
     <main>
+      <SEOHead
+        title={SITE_CONFIG.defaultTitle}
+        description={SITE_CONFIG.defaultDescription}
+        canonicalPath="/"
+        type="website"
+        structuredData={[
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": SITE_CONFIG.siteName,
+            "url": SITE_CONFIG.productionUrl,
+            "description": SITE_CONFIG.defaultDescription,
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": "Chief Osita Chidoka",
+            "jobTitle": "Former Minister of Aviation",
+            "url": SITE_CONFIG.productionUrl,
+            "sameAs": [
+              SITE_CONFIG.socials.x,
+              SITE_CONFIG.socials.linkedin,
+              SITE_CONFIG.socials.facebook,
+              SITE_CONFIG.socials.youtube,
+            ],
+          },
+        ]}
+      />
       <section className="hero wrap">
         <p className="eyebrow">Public servant · Writer · Institution builder</p>
         <h1>Osita Chidoka</h1>
@@ -45,11 +75,17 @@ export function HomePage() {
         </p>
         <img className="hero-image" src="/images/osita-conference.jpg" alt="Osita Chidoka speaking at a university event" />
         <article className="featured">
-          <div>
+          <div style={{ flex: 1 }}>
             <p className="eyebrow">Featured essay</p>
             <h2>{featuredEssay ? featuredEssay.title : "From Alibi to Agency"}</h2>
+            <p style={{ fontSize: "14px", color: "var(--gold)", margin: "10px 0", fontWeight: "bold" }}>
+              {featuredEssay ? `${featuredEssay.month} ${featuredEssay.year}` : "July 2026"}
+            </p>
           </div>
-          <div>
+          <div style={{ flex: 1.6 }}>
+            {featuredEssay?.imageUrl && (
+               <img src={featuredEssay.imageUrl} alt={featuredEssay.title} style={{ width: "100%", maxHeight: "300px", objectFit: "cover", marginBottom: "20px", borderRadius: "8px" }} />
+            )}
             <h3>{featuredEssay?.subtitle || featuredEssay?.title || "Re-Inventing the South-East Through Data, Discipline and Purpose"}</h3>
             <p>{featuredEssay?.summary || "A case for structured ambition, stronger institutions, and purposeful regional development."}</p>
             <Link className="text-link" to={featuredEssay ? `/collections/${featuredEssay.slug}` : "/collections"}>Read essay <span>→</span></Link>

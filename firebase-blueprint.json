@@ -57,6 +57,20 @@
         "adminPasswordRaw": { "type": "string" },
         "maintenanceMode": { "type": "boolean" }
       }
+    },
+    "admin_users": {
+      "title": "Admin Users",
+      "description": "CMS Administrator Accounts and Roles",
+      "fields": {
+        "id": { "type": "string", "description": "Admin User ID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "description": "Admin email address" },
+        "role": { "type": "string", "description": "Super Admin, Editor, or Author" },
+        "status": { "type": "string", "description": "Active or Inactive" },
+        "createdAt": { "type": "string", "description": "Creation date ISO" },
+        "lastLogin": { "type": "string", "description": "Last login date ISO" },
+        "passwordRaw": { "type": "string", "description": "Optional login passcode" }
+      }
     }
   }
 }

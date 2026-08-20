@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { formatDocumentDownloadUrl } from "../lib/url-utils";
 
 interface CMSContentEditorProps {
   value: string;
@@ -363,13 +364,25 @@ export function CMSContentEditor({
               placeholder="https://drive.google.com/... or https://onedrive.live.com/..."
               value={pdfUrl && pdfUrl !== "#" ? pdfUrl : ""}
               onChange={(e) => {
-                const val = e.target.value.trim();
-                if (val && !val.toLowerCase().startsWith("https://")) {
+                const rawVal = e.target.value.trim();
+                let processedVal = rawVal;
+                if (rawVal && (rawVal.toLowerCase().startsWith("https://") || rawVal.toLowerCase().startsWith("http://"))) {
+                  processedVal = formatDocumentDownloadUrl(rawVal);
+                }
+                if (rawVal && !rawVal.toLowerCase().startsWith("https://")) {
                   setPdfUrlError("URL must start with https://");
                 } else {
                   setPdfUrlError(null);
                 }
-                onPdfChange(val, pdfFileName || "Official Document.pdf");
+                onPdfChange(processedVal, pdfFileName || "Official Document.pdf");
+              }}
+              onBlur={() => {
+                if (pdfUrl && (pdfUrl.toLowerCase().startsWith("https://") || pdfUrl.toLowerCase().startsWith("http://"))) {
+                  const formatted = formatDocumentDownloadUrl(pdfUrl);
+                  if (formatted !== pdfUrl) {
+                    onPdfChange(formatted, pdfFileName || "Official Document.pdf");
+                  }
+                }
               }}
               style={{
                 width: "100%",

@@ -95,47 +95,40 @@ export function Archive({ initialEssays, initialSearch = "" }: ArchiveProps) {
             <div className="year-mark">{year}</div>
             <div className="year-essays">
               {list.map((essay) => (
-                <article
+                <Link
                   key={essay.slug}
-                  className="essay-card interactive"
-                  onClick={() => navigate(`/collections/${essay.slug}`)}
+                  to={`/collections/${essay.slug}`}
+                  style={{ textDecoration: "none", color: "inherit", display: "block" }}
                 >
-                  <div className="essay-card-header">
-                    <div className="essay-card-title-group">
-                      <h2>{essay.title}</h2>
-                      <span className="essay-card-category">{essay.category}</span>
+                  <article className="essay-card interactive">
+                    <div className="essay-card-header">
+                      <div className="essay-card-title-group">
+                        <h2>{essay.title}</h2>
+                        <span className="essay-card-category">{essay.category}</span>
+                      </div>
+                      <div className="essay-card-date-pdf">
+                        <span className="essay-card-date">{essay.month}</span>
+                      </div>
                     </div>
-                    <div className="essay-card-date-pdf">
-                      <span className="essay-card-date">{essay.month}</span>
-                    </div>
-                  </div>
 
-                  <p className="essay-card-summary">{essay.summary}</p>
+                    <p className="essay-card-summary">{essay.summary}</p>
 
-                  <div className="essay-card-footer">
-                    <div className="essay-card-meta">
-                      <span className="meta-item">👁 {essay.views || 100} views</span>
-                      <span className="meta-item">📥 {essay.downloads || 25} downloads</span>
+                    <div className="essay-card-footer">
+                      <div className="essay-card-meta">
+                        <span className="meta-item">👁 {essay.views || 100} views</span>
+                        <span className="meta-item">📥 {essay.downloads || 25} downloads</span>
+                      </div>
+                      <div className="essay-card-actions">
+                        <span className="read-now-link" style={{ textDecoration: "none" }}>
+                          Read essay <span>→</span>
+                        </span>
+                        <span className="direct-link-btn" title="Direct link">
+                          ↗
+                        </span>
+                      </div>
                     </div>
-                    <div className="essay-card-actions">
-                      <Link
-                        to={`/collections/${essay.slug}`}
-                        className="read-now-link"
-                        style={{ textDecoration: "none" }}
-                      >
-                        Read essay <span>→</span>
-                      </Link>
-                      <Link
-                        to={`/collections/${essay.slug}`}
-                        className="direct-link-btn"
-                        title="Direct link"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        ↗
-                      </Link>
-                    </div>
-                  </div>
-                </article>
+                  </article>
+                </Link>
               ))}
             </div>
           </div>

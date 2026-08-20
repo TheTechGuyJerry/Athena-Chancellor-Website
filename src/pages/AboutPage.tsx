@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { getCMSData } from "../lib/cms-store";
+import { SEOHead } from "../components/SEOHead";
 
 const roles = [
   ["Chancellor", "Athena Centre for Policy and Leadership"],
@@ -11,6 +13,12 @@ const roles = [
 export function AboutPage() {
   return (
     <main>
+      <SEOHead
+        title="About | Chief Osita Chidoka"
+        description="Learn about Chief Osita Chidoka's background in public administration, transport reform, electoral processes, and institutional development in Nigeria."
+        canonicalPath="/about"
+        type="profile"
+      />
       <section className="page-title wrap">
         <p className="eyebrow">About</p>
         <h1>Osita Chidoka</h1>
@@ -23,6 +31,11 @@ export function AboutPage() {
           <p>I have spent more than three decades working within and around Nigerian public institutions in roles that demanded both execution and reflection.</p>
           <p>My work has crossed public administration, transport reform, electoral processes, and institutional development. Through it all, one question has remained: why do systems fail, and what does it take to make them work?</p>
           <p>This platform brings that experience together as an ongoing inquiry.</p>
+          <div style={{ marginTop: "24px", display: "flex", gap: "16px" }}>
+             {getCMSData().settings.cvUrl && (
+               <a href={getCMSData().settings.cvUrl} target="_blank" rel="noopener noreferrer" className="gold-button" style={{ display: "inline-block", textDecoration: "none" }}>View / Download CV</a>
+             )}
+          </div>
         </div>
       </section>
 
@@ -52,7 +65,7 @@ export function AboutPage() {
 
       <section className="section wrap institutions-section">
         <div>
-          <p className="eyebrow">Institutions</p>
+          <p className="eyebrow">Board Memberships & Institutions</p>
           <h2>Building platforms<br /><em>that endure.</em></h2>
           <p>Each institution works in a different domain, while sharing the same concern: understanding how systems work and how they can work better.</p>
         </div>

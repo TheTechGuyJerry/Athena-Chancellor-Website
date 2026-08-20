@@ -1,26 +1,47 @@
 import { useState, useEffect, FormEvent } from "react";
-import { getCMSData, addCMSSubscriber, DispatchPost } from "../lib/cms-store";
+import { useParams, useNavigate } from "react-router-dom";
+import { getCMSData, incrementDownloadCount, DispatchPost } from "../lib/cms-store";
+import { formatDocumentDownloadUrl, stripHtml } from "../lib/url-utils";
+import { NewsletterForm } from "../components/NewsletterForm";
+import { CopyLinkButton } from "../components/CopyLinkButton";
+import { SEOHead } from "../components/SEOHead";
 
 export function BlogPage() {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+
   const [posts, setPosts] = useState<DispatchPost[]>(() => {
     const data = getCMSData();
-    return data.dispatches.filter((p) => p.published !== false);
+    const items = data.insights || data.dispatches || [];
+    return items.filter((p) => p.published !== false);
   });
 
   useEffect(() => {
     const handleUpdate = () => {
       const data = getCMSData();
-      setPosts(data.dispatches.filter((p) => p.published !== false));
+      const items = data.insights || data.dispatches || [];
+      setPosts(items.filter((p) => p.published !== false));
     };
     window.addEventListener("osita_cms_updated", handleUpdate);
     return () => window.removeEventListener("osita_cms_updated", handleUpdate);
   }, []);
+  
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Categories");
-  const [subEmail, setSubEmail] = useState("");
-  const [subSuccess, setSubSuccess] = useState(false);
-  const [subLoading, setSubLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState<DispatchPost | null>(null);
+
+  useEffect(() => {
+    if (slug) {
+      const post = posts.find((p) => p.slug === slug || p.id === slug);
+      if (post) {
+        setSelectedPost(post);
+      } else {
+        setSelectedPost(null);
+      }
+    } else {
+      setSelectedPost(null);
+    }
+  }, [slug, posts]);
 
   useEffect(() => {
     if (selectedPost) {
@@ -28,19 +49,11 @@ export function BlogPage() {
     }
   }, [selectedPost]);
 
-  const handleSubscribe = (e: FormEvent) => {
-    e.preventDefault();
-    if (!subEmail || !subEmail.includes("@")) return;
-    setSubLoading(true);
-
-    try {
-      addCMSSubscriber(subEmail, "Blog Page");
-      setSubSuccess(true);
-      setSubEmail("");
-    } catch {
-      alert("Failed to subscribe.");
-    } finally {
-      setSubLoading(false);
+  const handleSelectPost = (post: DispatchPost | null) => {
+    if (post) {
+      navigate(`/blog/${post.slug || post.id}`);
+    } else {
+      navigate(`/blog`);
     }
   };
 
@@ -52,18 +65,30 @@ export function BlogPage() {
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.summary.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
-  });
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const categories = ["Politics", "Youth", "Development", "Transport", "Business", "Culture", "Leadership"];
+  const categories = Array.from(new Set(posts.map((p) => p.category))).sort();
 
   if (selectedPost) {
     return (
       <main style={{ paddingBlock: "40px 80px", background: "var(--paper)" }}>
+        <SEOHead
+          title={`${selectedPost.title} | Blog | Chief Osita Chidoka`}
+          description={stripHtml(selectedPost.summary)}
+          canonicalPath={`/blog/${selectedPost.slug || selectedPost.id}`}
+          type="article"
+          image={selectedPost.imageUrl}
+          article={{
+            publishedTime: new Date(selectedPost.date).toISOString(),
+            author: selectedPost.author || "Osita Chidoka",
+            section: selectedPost.category,
+          }}
+        />
         <div className="wrap-wide">
           <div className="dark-reader-container">
             <div className="dark-reader-topbar">
               <button
-                onClick={() => setSelectedPost(null)}
+                onClick={() => handleSelectPost(null)}
                 className="dark-reader-back-link"
                 style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}
               >
@@ -104,20 +129,25 @@ export function BlogPage() {
             {selectedPost.pdfUrl && selectedPost.pdfUrl !== "#" && (
               <div className="dark-reader-actions">
                 <a
-                  href={selectedPost.pdfUrl}
+                  href={formatDocumentDownloadUrl(selectedPost.pdfUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="dark-reader-pdf-btn"
                   style={{ textDecoration: "none" }}
+                  onClick={() => incrementDownloadCount(selectedPost.id, 'dispatch')}
                 >
                   📄 View / Download Attached Document
                 </a>
               </div>
             )}
 
-            <div style={{ paddingTop: "24px", borderTop: "1px solid #1e293b" }}>
+            <div style={{ marginTop: "24px", display: "flex", gap: "16px", alignItems: "center" }}>
+              <CopyLinkButton url={window.location.href} />
+            </div>
+
+            <div style={{ paddingTop: "24px", marginTop: "24px", borderTop: "1px solid #1e293b" }}>
               <button
-                onClick={() => setSelectedPost(null)}
+                onClick={() => handleSelectPost(null)}
                 className="gold-button"
                 style={{ border: 0 }}
               >
@@ -132,6 +162,11 @@ export function BlogPage() {
 
   return (
     <main>
+      <SEOHead
+        title="Blog & Dispatches | Chief Osita Chidoka"
+        description="Short-form commentaries, media briefs, and updates from Chief Osita Chidoka's public engagements."
+        canonicalPath="/blog"
+      />
       <section className="page-title wrap">
         <p className="eyebrow">The Dispatch</p>
         <h1>Blog &amp; Dispatches</h1>
@@ -180,30 +215,34 @@ export function BlogPage() {
           ) : (
             <div className="dispatches-grid" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               {filteredPosts.map((post) => (
-                <article
+                <Link
                   key={post.id}
-                  className="dispatch-post-card clickable"
-                  onClick={() => setSelectedPost(post)}
-                  style={{
-                    cursor: "pointer",
-                    padding: "28px",
-                    border: "1px solid var(--line)",
-                    background: "#fff",
-                    borderRadius: "8px",
-                    transition: "all 0.2s ease"
-                  }}
+                  to={`/blog/${post.slug || post.id}`}
+                  style={{ textDecoration: "none", color: "inherit", display: "block" }}
                 >
-                  <div className="dispatch-card-meta" style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "12px" }}>
-                    <span className="cat-badge" style={{ color: "var(--gold)", fontWeight: "bold", textTransform: "uppercase" }}>{post.category}</span>
-                    <span className="dispatch-date" style={{ color: "var(--muted)" }}>{post.date}</span>
-                  </div>
-                  <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", margin: "0 0 12px 0", color: "var(--ink)" }}>{post.title}</h2>
-                  <p style={{ color: "#4a453e", fontSize: "15px", lineHeight: "1.6", margin: "0 0 16px 0" }}>{post.summary}</p>
-                  <div className="dispatch-card-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px" }}>
-                    <span className="author" style={{ color: "var(--muted)", fontStyle: "italic" }}>By {post.author || "Osita Chidoka"}</span>
-                    <span className="read-more-link" style={{ color: "var(--gold)", fontWeight: "bold" }}>Read article →</span>
-                  </div>
-                </article>
+                  <article
+                    className="dispatch-post-card clickable"
+                    style={{
+                      cursor: "pointer",
+                      padding: "28px",
+                      border: "1px solid var(--line)",
+                      background: "#fff",
+                      borderRadius: "8px",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    <div className="dispatch-card-meta" style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "12px" }}>
+                      <span className="cat-badge" style={{ color: "var(--gold)", fontWeight: "bold", textTransform: "uppercase" }}>{post.category}</span>
+                      <span className="dispatch-date" style={{ color: "var(--muted)" }}>{post.date}</span>
+                    </div>
+                    <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", margin: "0 0 12px 0", color: "var(--ink)" }}>{post.title}</h2>
+                    <p style={{ color: "#4a453e", fontSize: "15px", lineHeight: "1.6", margin: "0 0 16px 0" }}>{post.summary}</p>
+                    <div className="dispatch-card-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px" }}>
+                      <span className="author" style={{ color: "var(--muted)", fontStyle: "italic" }}>By {post.author || "Osita Chidoka"}</span>
+                      <span className="read-more-link" style={{ color: "var(--gold)", fontWeight: "bold" }}>Read article →</span>
+                    </div>
+                  </article>
+                </Link>
               ))}
             </div>
           )}
@@ -213,23 +252,7 @@ export function BlogPage() {
           <div className="subscribe-card" style={{ padding: "24px", border: "1px solid var(--line)", background: "#fff", borderRadius: "8px", marginBottom: "24px" }}>
             <strong style={{ fontSize: "16px", display: "block", marginBottom: "8px" }}>✉ Stay Updated</strong>
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Get Chief Osita Chidoka&apos;s latest insights directly in your inbox.</p>
-            {subSuccess ? (
-              <div className="sub-success-box" style={{ padding: "10px", background: "#e4eddf", color: "#35552c", borderRadius: "4px", fontSize: "13px" }}>✓ Subscribed successfully!</div>
-            ) : (
-              <form onSubmit={handleSubscribe} className="subscribe-form" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  value={subEmail}
-                  onChange={(e) => setSubEmail(e.target.value)}
-                  required
-                  style={{ padding: "10px", border: "1px solid var(--line)", borderRadius: "4px" }}
-                />
-                <button type="submit" disabled={subLoading} className="gold-button" style={{ border: 0, padding: "10px" }}>
-                  {subLoading ? "Subscribing..." : "Subscribe"}
-                </button>
-              </form>
-            )}
+            <NewsletterForm source="Blog Page" />
           </div>
 
           <div className="category-card" style={{ padding: "24px", border: "1px solid var(--line)", background: "#fff", borderRadius: "8px" }}>

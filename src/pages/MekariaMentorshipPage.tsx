@@ -1,8 +1,14 @@
 import { JoinForm } from "../components/PublicForms";
+import { SEOHead } from "../components/SEOHead";
 
 export function MekariaMentorshipPage() {
   return (
     <main>
+      <SEOHead
+        title="Mekaria Mentorship Programme | Chief Osita Chidoka"
+        description="A structured, long-term engagement designed to develop emerging Nigerian leaders in business, politics, and public service."
+        canonicalPath="/mekariamentorship"
+      />
       <section className="programme-title wrap">
         <p className="eyebrow">Mentorship</p>
         <h1>Mekaria Mentorship</h1>

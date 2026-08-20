@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { NewsletterForm } from "./NewsletterForm";
+import { getCMSData } from "../lib/cms-store";
 
 const links = [
   { href: "/", label: "HOME" },
   { href: "/about", label: "ABOUT" },
-  { href: "/blog", label: "BLOG" },
   { href: "/collections", label: "THE CANON" },
+  { href: "/insights", label: "INSIGHTS" },
+  { href: "/press-releases", label: "PRESS RELEASES" },
 ];
 
 export function SiteHeader() {
@@ -69,9 +72,7 @@ export function SiteHeader() {
               aria-label="Search"
             />
           </form>
-          <button className="signin" onClick={() => navigate("/admin")}>
-            Sign In
-          </button>
+
           <button
             className="menu-button"
             aria-label="Toggle menu"
@@ -150,6 +151,37 @@ export function SiteFooter() {
               ))}
             </ul>
           </div>
+          
+          <div>
+            <span
+              style={{
+                display: "block",
+                color: "#a8863c",
+                fontSize: "11px",
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: ".15em",
+                marginBottom: "16px",
+              }}
+            >
+              Connect & Subscribe
+            </span>
+            <div style={{ marginBottom: "20px" }}>
+               <NewsletterForm source="Footer" />
+            </div>
+            <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+              {getCMSData().settings.twitterLink && (
+                <a href={getCMSData().settings.twitterLink} target="_blank" rel="noopener noreferrer" style={{ color: "#d8d0c3", fontSize: "14px", textDecoration: "none" }}>X / Twitter</a>
+              )}
+              {getCMSData().settings.facebookLink && (
+                <a href={getCMSData().settings.facebookLink} target="_blank" rel="noopener noreferrer" style={{ color: "#d8d0c3", fontSize: "14px", textDecoration: "none" }}>Facebook</a>
+              )}
+              {getCMSData().settings.whatsappLink && (
+                <a href={getCMSData().settings.whatsappLink} target="_blank" rel="noopener noreferrer" style={{ color: "#25D366", fontSize: "14px", textDecoration: "none", fontWeight: "bold" }}>Follow on WhatsApp</a>
+              )}
+            </div>
+          </div>
+
           <div>
             <span
               style={{

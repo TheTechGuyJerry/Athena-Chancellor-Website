@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { Archive } from "../components/Archive";
+import { SEOHead } from "../components/SEOHead";
 
 export function CollectionsPage() {
   const [essays, setEssays] = useState<Essay[]>(() => {
@@ -23,6 +24,11 @@ export function CollectionsPage() {
 
   return (
     <main>
+      <SEOHead
+        title="The Canon - Essays & Speeches | Chief Osita Chidoka"
+        description="A working body of thought on governance, state capacity, and public leadership in Nigeria. Read long-form essays, convocation lectures, and policy papers."
+        canonicalPath="/collections"
+      />
       <section className="canon-intro wrap">
         <p className="eyebrow">The Canon</p>
         <h1>Essays &amp; Speeches</h1>

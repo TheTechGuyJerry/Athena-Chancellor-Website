@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Essay } from "../lib/essays";
-import { getCMSData } from "../lib/cms-store";
+import { getCMSData, incrementDownloadCount } from "../lib/cms-store";
+import { formatDocumentDownloadUrl } from "../lib/url-utils";
+import { NewsletterForm } from "./NewsletterForm";
 
 interface EssayReaderProps {
   essay: Essay;
@@ -16,7 +18,9 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
 
   const handleDownloadPDF = () => {
     if (essay.pdfUrl && essay.pdfUrl !== "#" && essay.pdfUrl.trim() !== "") {
-      window.open(essay.pdfUrl, "_blank", "noopener,noreferrer");
+      const finalUrl = formatDocumentDownloadUrl(essay.pdfUrl);
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+      incrementDownloadCount(essay.slug, 'essay');
       return;
     }
 
@@ -28,6 +32,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
     a.download = `${essay.slug}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    incrementDownloadCount(essay.slug, 'essay');
   };
 
   const handleCopyLink = () => {
@@ -272,26 +277,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
       <div className="dark-reader-newsletter">
         <div className="news-badge">✉ NEWSLETTER</div>
         <h3>Get the latest essays, insights, and initiatives delivered to your inbox.</h3>
-        {subDone ? (
-          <p className="sub-success">Thank you for subscribing!</p>
-        ) : (
-          <form
-            className="news-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (emailSub) setSubDone(true);
-            }}
-          >
-            <input
-              type="email"
-              placeholder="Your email address"
-              value={emailSub}
-              onChange={(e) => setEmailSub(e.target.value)}
-              required
-            />
-            <button type="submit">→</button>
-          </form>
-        )}
+        <NewsletterForm source="Essay Reader" />
       </div>
     </div>
   );

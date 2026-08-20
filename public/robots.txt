@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cms
+Disallow: /cms/login
+Disallow: /cms/admin
+
+Sitemap: https://ositachidoka.com/sitemap.xml

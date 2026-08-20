@@ -1,6 +1,9 @@
+import { SEOHead } from "../components/SEOHead";
+
 export function TermsPage() {
   return (
     <main className="wrap" style={{ paddingBlock: "80px 120px" }}>
+      <SEOHead title="Terms of Service | Chief Osita Chidoka" description="Terms of service and use for Chief Osita Chidoka's official digital platform." canonicalPath="/termsofservice" />
       <p className="eyebrow">Legal</p>
       <h1>Terms of Service</h1>
       <div style={{ maxWidth: "780px", marginTop: "32px", fontSize: "16px", lineHeight: "1.8", color: "#333" }}>
@@ -19,6 +22,7 @@ export function TermsPage() {
 export function PrivacyPage() {
   return (
     <main className="wrap" style={{ paddingBlock: "80px 120px" }}>
+      <SEOHead title="Privacy Policy | Chief Osita Chidoka" description="Privacy policy regarding data collection and usage on Chief Osita Chidoka's official website." canonicalPath="/privacypolicy" />
       <p className="eyebrow">Legal</p>
       <h1>Privacy Policy</h1>
       <div style={{ maxWidth: "780px", marginTop: "32px", fontSize: "16px", lineHeight: "1.8", color: "#333" }}>
@@ -37,6 +41,7 @@ export function PrivacyPage() {
 export function CookiesPage() {
   return (
     <main className="wrap" style={{ paddingBlock: "80px 120px" }}>
+      <SEOHead title="Cookies Policy | Chief Osita Chidoka" description="Information about how cookies are used on Chief Osita Chidoka's official digital platform." canonicalPath="/cookiespolicy" />
       <p className="eyebrow">Legal</p>
       <h1>Cookies Policy</h1>
       <div style={{ maxWidth: "780px", marginTop: "32px", fontSize: "16px", lineHeight: "1.8", color: "#333" }}>
