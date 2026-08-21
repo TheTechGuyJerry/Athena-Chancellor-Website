@@ -1,6 +1,6 @@
 {
-  "name": "Osita Chidoka — Official Website & Executive CMS",
-  "description": "Official digital platform and Content Management System for Chief Osita Chidoka featuring essays, speeches, blog dispatches, and media relations.",
+  "name": "Osita Chidoka Connect",
+  "description": "Your official portal to connect with Osita Chidoka, stay updated on his activities, access his articles and insights, and engage with his initiatives like Unlock Naija and Mekaria Mentorship.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

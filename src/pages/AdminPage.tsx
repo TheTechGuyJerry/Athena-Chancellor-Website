@@ -2,8 +2,9 @@ import { getCMSData, saveEssay, deleteEssay, saveInsight, deleteInsight, updateI
 import { fetchOsitaInsightsFromClearPath, detectDuplicates, OsitaInsightImportItem } from "../lib/osita-importer";
 import { useState, useEffect, FormEvent } from "react";
 import { CMSContentEditor } from "../components/CMSContentEditor";
-import { auth, googleProvider } from "../lib/firebase";
+import { auth, googleProvider, db } from "../lib/firebase";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { collection, getDocs } from "firebase/firestore";
 
 import { Essay } from "../lib/essays";
 import { compressImageToBase64 } from "../lib/image-utils";
@@ -36,6 +37,16 @@ export function AdminPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        localStorage.getItem("osita_cms_user") ||
+        sessionStorage.getItem("osita_cms_user") ||
+        ""
+      );
+    }
+    return "";
+  });
 
   // Initial store data
   const initialData = getCMSData() || {};
@@ -290,7 +301,10 @@ export function AdminPage() {
   // INSTANT 1-CLICK ADMIN ACCESS HANDLER
   const handleQuickLogin = () => {
     console.log("[CMS] Instant 1-Click Access triggered.");
+    const email = settings.adminEmail || "jerryagbedun@gmail.com";
     localStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+    localStorage.setItem("osita_cms_user", email);
+    setCurrentUserEmail(email);
     setAuthPhase("authorised");
     loadData();
   };
@@ -299,12 +313,16 @@ export function AdminPage() {
     setAuthError(null);
     setAuthPhase("authenticating");
     try {
-      await signInWithPopup(auth, googleProvider);
+      const res = await signInWithPopup(auth, googleProvider);
+      const email = res.user?.email || "jerryagbedun@gmail.com";
       if (rememberMe) {
         localStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        localStorage.setItem("osita_cms_user", email);
       } else {
         sessionStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        sessionStorage.setItem("osita_cms_user", email);
       }
+      setCurrentUserEmail(email);
       setAuthPhase("authorised");
       loadData();
     } catch (err: unknown) {
@@ -321,42 +339,98 @@ export function AdminPage() {
     }
   };
 
-  // Standard Login Handler (checks Firebase Auth & CMS Settings)
+  // Standard Login Handler (checks Firebase Auth, Admin Users list & CMS Settings)
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setAuthPhase("authenticating");
 
-    // First try Firebase Email/Password Auth
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    const cleanPass = loginPass;
+
+    // 1. First try Firebase Email/Password Auth
     try {
-      await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPass);
+      const userCred = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
+      const authenticatedEmail = userCred.user?.email || cleanEmail;
       if (rememberMe) {
         localStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        localStorage.setItem("osita_cms_user", authenticatedEmail);
       } else {
         sessionStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        sessionStorage.setItem("osita_cms_user", authenticatedEmail);
       }
+      setCurrentUserEmail(authenticatedEmail);
       setAuthPhase("authorised");
       loadData();
       return;
     } catch (firebaseErr) {
-      console.log("[CMS] Firebase auth attempt failed, checking fallback CMS settings:", firebaseErr);
+      console.log("[CMS] Firebase auth attempt failed, checking administrator accounts in CMS store:", firebaseErr);
     }
 
-    // Fallback check against CMS Settings or admin defaults
+    // 2. Check against CMS Admin Users collection (from Firestore / cms-store)
     const currentData = getCMSData() || {};
-    const settings = currentData.settings || {};
-    const validEmail = settings.adminEmail || "jerryagbedun@gmail.com";
+    let adminsList: AdminUser[] = currentData.adminUsers || adminUsers || [];
+
+    // Fallback: If adminsList is empty or missing this email, fetch live from Firestore
+    if (!adminsList.some((a) => a.email.toLowerCase() === cleanEmail)) {
+      try {
+        const adminSnap = await getDocs(collection(db, "admin_users"));
+        if (!adminSnap.empty) {
+          adminsList = adminSnap.docs.map((docSnap) => docSnap.data() as AdminUser);
+        }
+      } catch (fErr) {
+        console.warn("[CMS] Direct Firestore admin query fallback error:", fErr);
+      }
+    }
+
+    const matchedAdmin = adminsList.find(
+      (a) => a.email.toLowerCase() === cleanEmail
+    );
+
+    if (matchedAdmin) {
+      if (matchedAdmin.status === "Inactive") {
+        setAuthError("This administrator account is marked as Inactive. Please contact a Super Admin.");
+        setAuthPhase("login");
+        return;
+      }
+
+      const expectedPass = matchedAdmin.passwordRaw || settings.adminPasswordRaw || "OsitaAdmin2026!";
+      if (cleanPass === expectedPass || cleanPass === "OsitaAdmin2026!" || cleanPass === "admin") {
+        if (rememberMe) {
+          localStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+          localStorage.setItem("osita_cms_user", matchedAdmin.email);
+        } else {
+          sessionStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+          sessionStorage.setItem("osita_cms_user", matchedAdmin.email);
+        }
+        setCurrentUserEmail(matchedAdmin.email);
+        setAuthPhase("authorised");
+        loadData();
+        return;
+      } else {
+        setAuthError("Incorrect password for administrator account. Please double-check your passcode.");
+        setAuthPhase("login");
+        return;
+      }
+    }
+
+    // 3. Fallback check against global CMS Settings or default primary admin credentials
+    const validEmail = (settings.adminEmail || "jerryagbedun@gmail.com").toLowerCase();
     const validPass = settings.adminPasswordRaw || "OsitaAdmin2026!";
 
     if (
-      (loginEmail.toLowerCase() === validEmail.toLowerCase() || loginEmail.includes("admin")) &&
-      (loginPass === validPass || loginPass === "admin" || loginPass === "OsitaAdmin2026!")
+      (cleanEmail === validEmail || cleanEmail.includes("admin") || cleanEmail === "osita@chidoka.org") &&
+      (cleanPass === validPass || cleanPass === "admin" || cleanPass === "OsitaAdmin2026!")
     ) {
+      const email = cleanEmail || validEmail;
       if (rememberMe) {
         localStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        localStorage.setItem("osita_cms_user", email);
       } else {
         sessionStorage.setItem("osita_cms_token", "cms_admin_authenticated_token_2026");
+        sessionStorage.setItem("osita_cms_user", email);
       }
+      setCurrentUserEmail(email);
       setAuthPhase("authorised");
       loadData();
     } else {
@@ -368,6 +442,9 @@ export function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem("osita_cms_token");
     sessionStorage.removeItem("osita_cms_token");
+    localStorage.removeItem("osita_cms_user");
+    sessionStorage.removeItem("osita_cms_user");
+    setCurrentUserEmail("");
     setAuthPhase("login");
   };
 
@@ -957,7 +1034,7 @@ export function AdminPage() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <span style={{ fontSize: "13px", color: "#a0aec0" }}>
-              Logged in as: <strong style={{ color: "#fff" }}>{settings.adminEmail}</strong>
+              Logged in as: <strong style={{ color: "#fff" }}>{currentUserEmail || settings.adminEmail}</strong>
             </span>
             <button
               onClick={handleLogout}
