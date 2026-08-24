@@ -7,7 +7,7 @@ const links = [
   { href: "/", label: "HOME" },
   { href: "/about", label: "ABOUT" },
   { href: "/collections", label: "THE CANON" },
-  { href: "/insights", label: "INSIGHTS" },
+  { href: "/insights", label: "OsitaInsight" },
   { href: "/press-releases", label: "PRESS RELEASES" },
 ];
 
