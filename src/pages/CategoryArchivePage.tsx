@@ -171,10 +171,6 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                         <span className="text-slate-900 font-semibold">Twice Weekly</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Format</span>
-                        <span className="text-slate-900 font-semibold uppercase">Interview</span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-slate-600">Coverage</span>
                         <span className="text-slate-900 font-semibold">Nigeria</span>
                       </div>

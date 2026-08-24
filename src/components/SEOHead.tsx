@@ -64,6 +64,8 @@ export function SEOHead({
     setMeta("og:url", canonicalUrl, true);
     setMeta("og:type", type, true);
     setMeta("og:image", getAbsoluteUrl(image), true);
+    setMeta("og:image:width", "1200", true);
+    setMeta("og:image:height", "630", true);
 
     // Article Meta
     if (type === "article" && article) {
