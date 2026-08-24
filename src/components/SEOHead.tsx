@@ -64,8 +64,6 @@ export function SEOHead({
     setMeta("og:url", canonicalUrl, true);
     setMeta("og:type", type, true);
     setMeta("og:image", getAbsoluteUrl(image), true);
-    setMeta("og:image:width", "1200", true);
-    setMeta("og:image:height", "630", true);
 
     // Article Meta
     if (type === "article" && article) {
@@ -76,7 +74,7 @@ export function SEOHead({
     }
 
     // Twitter Card
-    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:card", "summary");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
     setMeta("twitter:image", getAbsoluteUrl(image));
