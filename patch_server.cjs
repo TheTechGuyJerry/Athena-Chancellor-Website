@@ -1,145 +1,20 @@
-import express from "express";
-import path from "path";
-import { createServer as createViteServer } from "vite";
-import { fetchOsitaInsightsFromClearPath } from "./src/lib/osita-importer";
+const fs = require('fs');
+let code = fs.readFileSync('server.ts', 'utf8');
 
-import { Resend } from "resend";
-import crypto from "crypto";
-import { collection, getDocs, setDoc, doc, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./src/lib/firebase";
-
-
-
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json());
-
-  // API Routes
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
-
-  // Sitemap generation
-  app.get("/sitemap.xml", async (_req, res) => {
-    try {
-      let essays: any[] = [];
-      let dispatches: any[] = [];
-      
-      try {
-        const essaysSnap = await getDocs(collection(db, "essays"));
-        essays = essaysSnap.docs.map(d => d.data());
-      } catch (e) {
-        console.warn("Could not fetch essays for sitemap:", e);
-      }
-
-      try {
-        const dispatchesSnap = await getDocs(collection(db, "dispatches"));
-        dispatches = dispatchesSnap.docs.map(d => d.data());
-      } catch (e) {
-        console.warn("Could not fetch dispatches for sitemap:", e);
-      }
-
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://ositachidoka.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://ositachidoka.com/about</loc><priority>0.8</priority></url>
-  <url><loc>https://ositachidoka.com/collections</loc><priority>0.9</priority></url>
-  <url><loc>https://ositachidoka.com/blog</loc><priority>0.9</priority></url>
-  <url><loc>https://ositachidoka.com/press-releases</loc><priority>0.8</priority></url>
-  <url><loc>https://ositachidoka.com/insights</loc><priority>0.8</priority></url>
-  <url><loc>https://ositachidoka.com/mekariamentorship</loc><priority>0.7</priority></url>
-  <url><loc>https://ositachidoka.com/pressinquiry</loc><priority>0.7</priority></url>
-`;
-
-      // Dynamic essay URLs
-      for (const essay of essays) {
-        if (essay.slug) {
-          xml += `  <url><loc>https://ositachidoka.com/collections/${essay.slug}</loc><priority>0.8</priority></url>\n`;
-        }
-      }
-
-      // Dynamic dispatch URLs
-      for (const dispatch of dispatches) {
-        if (dispatch.published !== false && (dispatch.slug || dispatch.id)) {
-          const category = dispatch.category?.toLowerCase() || "";
-          let prefix = "blog";
-          if (category.includes("insight")) prefix = "insights";
-          else if (category.includes("press release")) prefix = "press-releases";
-          
-          xml += `  <url><loc>https://ositachidoka.com/${prefix}/${dispatch.slug || dispatch.id}</loc><priority>0.7</priority></url>\n`;
-        }
-      }
-
-      xml += `</urlset>`;
-
-      res.header('Content-Type', 'application/xml');
-      res.send(xml);
-    } catch (err) {
-      console.error("[Sitemap Generation Error]", err);
-      res.status(500).end();
-    }
-  });
-
-  // Requirement 1: Backend scraper/import service for Osita Insights
-  app.get("/api/scrape-osita-insights", async (_req, res) => {
-    try {
-      console.log("[Backend Scraper] Scraping Osita Insights from ClearPath Media...");
-      const items = await fetchOsitaInsightsFromClearPath();
-      res.json({ success: true, count: items.length, items });
-    } catch (err) {
-      console.error("[Backend Scraper Error]", err);
-      res.status(500).json({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  });
-
-
-
-  // Simple in-memory rate limiter
-  const ipRequests = new Map();
-  const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-  const MAX_REQUESTS = 5; // 5 requests per minute
-
-  const rateLimitMiddleware = (req, res, next) => {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
-    const now = Date.now();
-    
-    if (!ipRequests.has(ip)) {
-      ipRequests.set(ip, { count: 1, firstRequest: now });
-      return next();
-    }
-    
-    const record = ipRequests.get(ip);
-    if (now - record.firstRequest > RATE_LIMIT_WINDOW) {
-      ipRequests.set(ip, { count: 1, firstRequest: now });
-      return next();
-    }
-    
-    if (record.count >= MAX_REQUESTS) {
-      return res.status(429).json({ error: "Too many requests. Please wait a moment before trying again." });
-    }
-    
-    record.count += 1;
-    next();
-  };
-
-  // Newsletter Subscribe Routes
-    const resend = new Resend(process.env.RESEND_API_KEY || "dummy");
+const replacement = `
+  const crypto = require("crypto");
+  const resend = new Resend(process.env.RESEND_API_KEY || "dummy");
   const fromEmail = process.env.RESEND_FROM_EMAIL || "Osita Chidoka <newsletter@updates.ositachidoka.com>";
   const SITE_URL = process.env.SITE_URL || "https://ositachidoka.com";
 
   const sendSubscriptionEmail = async (email, token) => {
-    const confirmationUrl = `${SITE_URL}/subscribe/continue?token=${token}`;
+    const confirmationUrl = \`\${SITE_URL}/subscribe/continue?token=\${token}\`;
 
     return resend.emails.send({
       from: fromEmail,
       to: email,
       subject: "Confirm Your Subscription",
-      html: `
+      html: \`
         <!DOCTYPE html>
         <html>
         <head>
@@ -165,16 +40,16 @@ async function startServer() {
             <div class="brand">OSITA CHIDOKA</div>
             <h1 class="title">Confirm Your Subscription</h1>
             <p class="text">Thank you for subscribing to updates from Osita Chidoka.<br><br>Please confirm your email address and continue the subscription process by clicking the button below. This link will expire in 24 hours.</p>
-            <a href="${confirmationUrl}" class="btn" style="color: #ffffff;"><span class="btn-text">Confirm Email &amp; Continue</span></a>
+            <a href="\${confirmationUrl}" class="btn" style="color: #ffffff;"><span class="btn-text">Confirm Email &amp; Continue</span></a>
             <p class="fallback">If the button does not work, copy and paste the link below into your browser:</p>
-            <a href="${confirmationUrl}" class="fallback-link">${confirmationUrl}</a>
+            <a href="\${confirmationUrl}" class="fallback-link">\${confirmationUrl}</a>
             <hr class="footer-line" />
             <p class="footer-text">If you did not request this subscription, you can safely ignore this email.</p>
             <div class="footer-brand">Osita Chidoka<br>ositachidoka.com</div>
           </div>
         </body>
         </html>
-      `
+      \`
     });
   };
 
@@ -210,7 +85,7 @@ async function startServer() {
            updatedAt: serverTimestamp()
          });
       } else {
-         subId = `sub-${Date.now()}`;
+         subId = \`sub-\${Date.now()}\`;
          const newSub = {
             id: subId,
             email: normalizedEmail,
@@ -361,29 +236,8 @@ async function startServer() {
       res.status(500).json({ error: "We couldn't complete your subscription. Please try again." });
     }
   });
+`;
 
+code = code.replace(/const resend = new Resend.*\}\);/s, replacement.trim());
 
-  // Vite middleware setup
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
-}
-
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
-});
+fs.writeFileSync('server.ts', code);

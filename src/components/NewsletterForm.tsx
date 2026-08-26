@@ -200,91 +200,13 @@ export function NewsletterForm({ source = "Website" }: { source?: string }) {
                 
                 <div style={{ display: "flex", gap: "12px", flexDirection: "column" }}>
                   <button
-                    onClick={() => { setMessage(null); setStep("complete_profile"); }}
-                    style={{ padding: "12px", background: "#a8863c", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer", width: "100%" }}
-                  >
-                    Continue
-                  </button>
-                  <button
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || loading}
-                    style={{ padding: "12px", background: "transparent", color: "#a8863c", border: "1px solid #a8863c", borderRadius: "4px", fontWeight: "bold", cursor: (resendCooldown > 0 || loading) ? "not-allowed" : "pointer", width: "100%" }}
+                    style={{ padding: "12px", background: "#a8863c", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: (resendCooldown > 0 || loading) ? "not-allowed" : "pointer", width: "100%" }}
                   >
                     {resendCooldown > 0 ? `Resend Email (${resendCooldown}s)` : (loading ? "Sending..." : "Resend Email")}
                   </button>
                 </div>
-              </div>
-            )}
-            
-            {step === "complete_profile" && (
-              <form onSubmit={handleCompleteProfile}>
-                <h2 style={{ fontSize: "24px", marginTop: 0, marginBottom: "8px", color: "#0f172a", fontWeight: "bold" }}>Complete Your Profile</h2>
-                <p style={{ color: "#475569", marginBottom: "24px", fontSize: "15px" }}>Help us understand our audience better.</p>
-                
-                {message && (
-                  <div style={{ color: message.type === "success" ? "#4caf50" : "#f44336", fontSize: "14px", fontWeight: "bold", marginBottom: "16px" }}>
-                    {message.text}
-                  </div>
-                )}
-                
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", fontSize: "14px", color: "#334155" }}>State of Residence</label>
-                  <select 
-                    value={stateOfResidence}
-                    onChange={e => setStateOfResidence(e.target.value)}
-                    required
-                    style={{ width: "100%", padding: "12px", border: "1px solid #cbd5e1", borderRadius: "4px", backgroundColor: "#fff", color: "#0f172a", fontSize: "15px", outline: "none" }}
-                  >
-                    <option value="" disabled>Select your state</option>
-                    {NIGERIAN_STATES.map(state => (
-                      <option key={state} value={state}>{state}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div style={{ marginBottom: "24px" }}>
-                  <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", fontSize: "14px", color: "#334155" }}>Organisation</label>
-                  <input 
-                    type="text"
-                    placeholder="Enter your organisation"
-                    value={organisation}
-                    onChange={e => setOrganisation(e.target.value)}
-                    required
-                    style={{ width: "100%", padding: "12px", border: "1px solid #cbd5e1", borderRadius: "4px", backgroundColor: "#fff", color: "#0f172a", fontSize: "15px", outline: "none", boxSizing: "border-box" }}
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    padding: "12px",
-                    background: "#a8863c",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontWeight: "bold",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    width: "100%"
-                  }}
-                >
-                  {loading ? "Saving..." : "Complete Subscription"}
-                </button>
-              </form>
-            )}
-            
-            {step === "success" && (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <h2 style={{ fontSize: "24px", marginTop: 0, marginBottom: "16px", color: "#0f172a", fontWeight: "bold" }}>Subscription Complete</h2>
-                <p style={{ color: "#475569", lineHeight: "1.6", marginBottom: "32px", fontSize: "15px" }}>
-                  Thank you for subscribing. You will now receive updates from Osita Chidoka.
-                </p>
-                <button
-                  onClick={closeModal}
-                  style={{ padding: "12px", background: "#a8863c", color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer", width: "100%" }}
-                >
-                  Return to Website
-                </button>
               </div>
             )}
           </div>
