@@ -144,17 +144,30 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                       </button>
                     </div>
                     <div className="text-[15px] leading-relaxed text-slate-700">
-                      {(!Array.isArray(selectedPost.content) || selectedPost.content.length === 0 || stripHtml(selectedPost.content[0]).trim() !== selectedPost.summary.trim()) && (
-                        <p className="mb-4">{selectedPost.summary}</p>
-                      )}
-                      {Array.isArray(selectedPost.content) && selectedPost.content.length > 0 ? (
-                        selectedPost.content.map((paragraph, idx) => {
-                          if (/<[a-z][\s\S]*>/i.test(paragraph)) {
-                            return <div key={idx} className="mb-4" dangerouslySetInnerHTML={{ __html: paragraph }} />;
-                          }
-                          return <p key={idx} className="mb-4">{paragraph}</p>;
-                        })
-                      ) : null}
+                      {(() => {
+                        const hasContent = Array.isArray(selectedPost.content) && selectedPost.content.length > 0;
+                        const content0Text = hasContent ? stripHtml(selectedPost.content[0]).replace(/\s+/g, " ").trim() : "";
+                        const summaryText = selectedPost.summary ? stripHtml(selectedPost.summary).replace(/\s+/g, " ").trim() : "";
+                        
+                        // Render summary only if it's genuinely different from the first paragraph of content
+                        const shouldRenderSummary = !hasContent || (summaryText.length > 0 && content0Text !== summaryText);
+
+                        return (
+                          <>
+                            {shouldRenderSummary && (
+                              <p className="mb-6 whitespace-pre-wrap">{selectedPost.summary}</p>
+                            )}
+                            {hasContent && (
+                              selectedPost.content.map((paragraph, idx) => {
+                                if (/<[a-z][\s\S]*>/i.test(paragraph)) {
+                                  return <div key={idx} className="mb-4" dangerouslySetInnerHTML={{ __html: paragraph }} />;
+                                }
+                                return <p key={idx} className="mb-4 whitespace-pre-wrap">{paragraph}</p>;
+                              })
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

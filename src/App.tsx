@@ -11,6 +11,7 @@ import { PressInquiryPage } from "./pages/PressInquiryPage";
 import { TermsPage, PrivacyPage, CookiesPage } from "./pages/TermsPage";
 import { AdminPage } from "./pages/AdminPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { SubscribePage } from "./pages/SubscribePage";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/collectionsitem" element={<EssayDetailPage />} />
           <Route path="/mekariamentorship" element={<MekariaMentorshipPage />} />
           <Route path="/pressinquiry" element={<PressInquiryPage />} />
+          <Route path="/subscribe" element={<SubscribePage />} />
           <Route path="/press-releases" element={<CategoryArchivePage title="Press Releases" description="Official press statements and engagement updates from Chief Osita Chidoka." categoryMatch="Press Release" />} />
           <Route path="/press-releases/:slug" element={<CategoryArchivePage title="Press Releases" description="Official press statements and engagement updates from Chief Osita Chidoka." categoryMatch="Press Release" />} />
           <Route path="/insights" element={<CategoryArchivePage title="Osita Insights" description="Focused analysis and commentary on governance and leadership." categoryMatch="Insight" />} />

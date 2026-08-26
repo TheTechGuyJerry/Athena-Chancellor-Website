@@ -639,7 +639,7 @@ export async function importOsitaInsightsToStore(
       date: item.publicationDate || new Date().toISOString().split("T")[0],
       category: "Osita Insight",
       summary: item.description,
-      content: [item.description],
+      content: item.description.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0),
       published: true,
       author: "Osita Chidoka",
       source: "ClearPath Media",

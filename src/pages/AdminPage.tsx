@@ -720,8 +720,8 @@ export function AdminPage() {
   };
 
   const exportSubscribersCSV = () => {
-    const headers = "Email,Date Subscribed,Source\n";
-    const rows = subscribers.map((s) => `"${s.email}","${s.date}","${s.source}"`).join("\n");
+    const headers = "Email,Date Subscribed,Source,State,Organisation,Status\n";
+    const rows = subscribers.map((s) => `"${s.email}","${s.date}","${s.source}","${s.stateOfResidence || "" }","${s.organisation || "" }","${s.status || "subscribed" }"`).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

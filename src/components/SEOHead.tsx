@@ -74,7 +74,7 @@ export function SEOHead({
     }
 
     // Twitter Card
-    setMeta("twitter:card", "summary");
+    setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
     setMeta("twitter:image", getAbsoluteUrl(image));
