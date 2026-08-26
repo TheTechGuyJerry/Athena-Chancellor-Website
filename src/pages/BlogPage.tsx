@@ -5,6 +5,7 @@ import { formatDocumentDownloadUrl, stripHtml } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
 import { SEOHead } from "../components/SEOHead";
+import { getEpisodeThumbnailUrl, extractYouTubeId } from "../lib/osita-importer";
 
 export function BlogPage() {
   const { slug } = useParams();
@@ -45,6 +46,8 @@ export function BlogPage() {
 
   useEffect(() => {
     if (selectedPost) {
+    const ytId = extractYouTubeId(selectedPost.episodeUrl || selectedPost.pdfUrl);
+    const thumbUrl = getEpisodeThumbnailUrl(selectedPost.episodeUrl, selectedPost.imageUrl);
       window.scrollTo(0, 0);
     }
   }, [selectedPost]);
@@ -77,7 +80,7 @@ export function BlogPage() {
           description={stripHtml(selectedPost.summary)}
           canonicalPath={`/blog/${selectedPost.slug || selectedPost.id}`}
           type="article"
-          image={selectedPost.imageUrl}
+          image={thumbUrl || selectedPost.imageUrl}
           article={{
             publishedTime: new Date(selectedPost.date).toISOString(),
             author: selectedPost.author || "Osita Chidoka",
@@ -99,6 +102,23 @@ export function BlogPage() {
               </div>
             </div>
 
+            {ytId ? (
+              <div style={{ marginBottom: "28px", borderRadius: "8px", overflow: "hidden", aspectRatio: "16 / 9", background: "#000", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.2)" }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
+                  title={selectedPost.title}
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : thumbUrl ? (
+              <div style={{ marginBottom: "28px", borderRadius: "8px", overflow: "hidden", aspectRatio: "16 / 9", background: "#f1f5f9" }}>
+                <img src={thumbUrl} alt={selectedPost.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            ) : null}
             <div className="dark-reader-header">
               <h1 className="dark-reader-title">{selectedPost.title}</h1>
               <p className="dark-reader-date">Published on {selectedPost.date} · By {selectedPost.author || "Osita Chidoka"}</p>
@@ -231,12 +251,30 @@ export function BlogPage() {
                       transition: "all 0.2s ease"
                     }}
                   >
+                    {getEpisodeThumbnailUrl(post.episodeUrl, post.imageUrl) && (
+                      <div
+                        style={{
+                          borderRadius: "6px",
+                          overflow: "hidden",
+                          aspectRatio: "16 / 9",
+                          marginBottom: "16px",
+                          background: "#f1f5f9",
+                          position: "relative"
+                        }}
+                      >
+                        <img
+                          src={getEpisodeThumbnailUrl(post.episodeUrl, post.imageUrl)}
+                          alt={post.title}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      </div>
+                    )}
                     <div className="dispatch-card-meta" style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "12px" }}>
                       <span className="cat-badge" style={{ color: "var(--gold)", fontWeight: "bold", textTransform: "uppercase" }}>{post.category}</span>
                       <span className="dispatch-date" style={{ color: "var(--muted)" }}>{post.date}</span>
                     </div>
                     <h2 style={{ fontFamily: "Georgia, serif", fontSize: "24px", margin: "0 0 12px 0", color: "var(--ink)" }}>{post.title}</h2>
-                    <p style={{ color: "#4a453e", fontSize: "15px", lineHeight: "1.6", margin: "0 0 16px 0" }}>{post.summary}</p>
+                    <p style={{ color: "#000000", fontSize: "15px", lineHeight: "1.6", margin: "0 0 16px 0" }}>{post.summary}</p>
                     <div className="dispatch-card-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px" }}>
                       <span className="author" style={{ color: "var(--muted)", fontStyle: "italic" }}>By {post.author || "Osita Chidoka"}</span>
                       <span className="read-more-link" style={{ color: "var(--gold)", fontWeight: "bold" }}>Read article →</span>

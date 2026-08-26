@@ -7,7 +7,7 @@ export type OsitaInsightImportItem = {
   title: string;
   description: string;
   publicationDate: string;
-  featuredImage: string;
+  featuredImage?: string;
   episodeUrl: string;
   category: "Osita Insight";
   source: "ClearPath Media";
@@ -23,15 +23,12 @@ export function extractYouTubeId(url: string | undefined | null): string | null 
   return null;
 }
 
-export function getEpisodeThumbnailUrl(episodeUrl?: string, imageUrl?: string): string {
+export function getEpisodeThumbnailUrl(episodeUrl?: string, imageUrl?: string): string | undefined {
   const ytId = extractYouTubeId(episodeUrl);
   if (ytId) {
     return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
   }
-  if (imageUrl && imageUrl.startsWith("http") && !imageUrl.includes("aida-public")) {
-    return imageUrl;
-  }
-  return "https://www.clearpathmedia.ng/images/ositainsight.jpg";
+  return imageUrl || undefined;
 }
 
 export async function fetchOsitaInsightsFromYouTube(

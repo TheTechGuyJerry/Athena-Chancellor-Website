@@ -210,7 +210,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
           ) : (
             <div className="dark-reader-container" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "32px", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)" }}>
               <div className="dark-reader-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-                <button onClick={() => handleSelectPost(null)} className="dark-reader-back-link" style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", padding: "8px 16px", fontWeight: "600", fontSize: "14px", color: "#334155" }}>
+                <button onClick={() => handleSelectPost(null)} className="dark-reader-back-link" style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", padding: "8px 16px", fontWeight: "600", fontSize: "14px", color: "#000000" }}>
                   ← Back to {title}
                 </button>
                 <div className="dark-reader-tags">
@@ -245,7 +245,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                 </p>
               </div>
 
-              <div className="dark-reader-body" style={{ fontSize: "16px", lineHeight: "1.7", color: "#334155" }}>
+              <div className="dark-reader-body" style={{ fontSize: "16px", lineHeight: "1.7", color: "#000000" }}>
                 {(!Array.isArray(selectedPost.content) || selectedPost.content.length === 0 || stripHtml(selectedPost.content[0]).trim() !== selectedPost.summary.trim()) && (
                   <p className="dark-reader-lead" style={{ fontWeight: "500", fontSize: "18px", color: "#1e293b", marginBottom: "20px" }}>{selectedPost.summary}</p>
                 )}
@@ -452,7 +452,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                       style={{
                         fontSize: "14px",
                         lineHeight: "1.55",
-                        color: "#334155",
+                        color: "#000000",
                         marginBottom: "24px",
                         display: "-webkit-box",
                         WebkitLineClamp: 3,
