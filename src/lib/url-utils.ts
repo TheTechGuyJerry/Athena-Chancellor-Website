@@ -66,3 +66,18 @@ export function getAbsoluteUrl(path: string = "/"): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${cleanPath}`;
 }
+
+export function safeIsoDate(dateStr: string | undefined | null, defaultIso?: string): string {
+  const fallback = defaultIso || new Date().toISOString();
+  if (!dateStr) return fallback;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return fallback;
+  return d.toISOString();
+}
+
+export function safeSortTime(dateStr: string | undefined | null): number {
+  if (!dateStr) return 0;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 0;
+  return d.getTime();
+}

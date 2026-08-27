@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getCMSData, incrementDownloadCount, DispatchPost } from "../lib/cms-store";
-import { formatDocumentDownloadUrl, stripHtml } from "../lib/url-utils";
+import { formatDocumentDownloadUrl, stripHtml, safeIsoDate, safeSortTime } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
 import { extractYouTubeId, getEpisodeThumbnailUrl } from "../lib/osita-importer";
@@ -79,7 +79,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
     .filter((p) => {
       return !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.summary.toLowerCase().includes(search.toLowerCase());
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => safeSortTime(b.date) - safeSortTime(a.date));
 
   const isVideoLibraryLayout = title.toLowerCase().includes("insight") || categoryMatch.toLowerCase().includes("insight");
 
@@ -96,7 +96,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
           type="article"
           image={thumbUrl || selectedPost.imageUrl}
           article={{
-            publishedTime: new Date(selectedPost.date).toISOString(),
+            publishedTime: safeIsoDate(selectedPost.date),
             author: selectedPost.author || "Osita Chidoka",
             section: selectedPost.category,
           }}
@@ -271,7 +271,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
 
               {selectedPost.pdfUrl && selectedPost.pdfUrl !== "#" && !selectedPost.episodeUrl && (
                 <div className="dark-reader-actions" style={{ marginTop: "16px" }}>
-                  <a href={formatDocumentDownloadUrl(selectedPost.pdfUrl)} target="_blank" rel="noopener noreferrer" className="dark-reader-pdf-btn" style={{ textDecoration: "none", background: "#0284c7", color: "#fff", padding: "12px 20px", borderRadius: "6px", display: "inline-block" }} onClick={() => incrementDownloadCount(selectedPost.id, 'dispatch')}>
+                  <a href={formatDocumentDownloadUrl(selectedPost.pdfUrl)} target="_blank" rel="noopener noreferrer" className="dark-reader-pdf-btn" style={{ textDecoration: "none", background: "#0284c7", color: "#fff", padding: "12px 20px", borderRadius: "6px", display: "inline-block" }} onClick={() => incrementDownloadCount(selectedPost.id, categoryMatch.toLowerCase().includes('press') ? 'press_release' : 'insight')}>
                     📄 View / Download Attached Document
                   </a>
                 </div>

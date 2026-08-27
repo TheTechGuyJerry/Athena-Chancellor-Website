@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getCMSData, incrementDownloadCount, DispatchPost } from "../lib/cms-store";
-import { formatDocumentDownloadUrl, stripHtml } from "../lib/url-utils";
+import { formatDocumentDownloadUrl, stripHtml, safeIsoDate, safeSortTime } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
 import { SEOHead } from "../components/SEOHead";
@@ -68,7 +68,7 @@ export function BlogPage() {
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.summary.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
-  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }).sort((a, b) => safeSortTime(a.date) - safeSortTime(b.date));
 
   const categories = Array.from(new Set(posts.map((p) => p.category))).sort();
 
@@ -82,7 +82,7 @@ export function BlogPage() {
           type="article"
           image={thumbUrl || selectedPost.imageUrl}
           article={{
-            publishedTime: new Date(selectedPost.date).toISOString(),
+            publishedTime: safeIsoDate(selectedPost.date),
             author: selectedPost.author || "Osita Chidoka",
             section: selectedPost.category,
           }}
@@ -154,7 +154,7 @@ export function BlogPage() {
                   rel="noopener noreferrer"
                   className="dark-reader-pdf-btn"
                   style={{ textDecoration: "none" }}
-                  onClick={() => incrementDownloadCount(selectedPost.id, 'dispatch')}
+                  onClick={() => incrementDownloadCount(selectedPost.id, selectedPost.category?.toLowerCase().includes('press') ? 'press_release' : 'insight')}
                 >
                   📄 View / Download Attached Document
                 </a>

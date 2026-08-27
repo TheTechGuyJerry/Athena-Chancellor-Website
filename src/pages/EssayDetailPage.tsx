@@ -5,7 +5,7 @@ import { Essay } from "../lib/essays";
 import { EssayReader } from "../components/EssayReader";
 import { SEOHead } from "../components/SEOHead";
 import { NotFoundPage } from "./NotFoundPage";
-import { stripHtml } from "../lib/url-utils";
+import { stripHtml, safeIsoDate } from "../lib/url-utils";
 
 export function EssayDetailPage() {
   const { slug: pathSlug } = useParams<{ slug: string }>();
@@ -67,7 +67,7 @@ export function EssayDetailPage() {
         type="article"
         image={essay.imageUrl}
         article={{
-          publishedTime: new Date(`${essay.month} 1, ${essay.year}`).toISOString(),
+          publishedTime: safeIsoDate(`${essay.month} 1, ${essay.year}`),
           author: "Osita Chidoka",
           section: "Essays & Speeches",
         }}

@@ -834,7 +834,7 @@ export async function deleteNewsletter(id: string): Promise<void> {
   }
 }
 
-export async function incrementDownloadCount(id: string, type: 'essay' | 'dispatch'): Promise<void> {
+export async function incrementDownloadCount(id: string, type: 'essay' | 'dispatch' | 'insight' | 'press_release'): Promise<void> {
   try {
     const { doc, updateDoc, increment } = await import("firebase/firestore");
     const { db } = await import("./firebase");
@@ -842,11 +842,23 @@ export async function incrementDownloadCount(id: string, type: 'essay' | 'dispat
     if (!db) return;
 
     if (type === 'essay') {
-      const docRef = doc(db, "osita_essays", id);
+      const docRef = doc(db, "essays", id);
+      await updateDoc(docRef, { downloads: increment(1) });
+    } else if (type === 'insight') {
+      const docRef = doc(db, "insights", id);
+      await updateDoc(docRef, { downloads: increment(1) });
+    } else if (type === 'press_release') {
+      const docRef = doc(db, "press_releases", id);
       await updateDoc(docRef, { downloads: increment(1) });
     } else {
-      const docRef = doc(db, "osita_dispatches", id);
-      await updateDoc(docRef, { downloads: increment(1) });
+      // fallback if type is dispatch
+      try {
+        const docRef = doc(db, "insights", id);
+        await updateDoc(docRef, { downloads: increment(1) });
+      } catch (e) {
+        const docRef2 = doc(db, "press_releases", id);
+        await updateDoc(docRef2, { downloads: increment(1) });
+      }
     }
   } catch (error) {
     console.error("Failed to increment download count", error);
