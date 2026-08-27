@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Essay } from "../lib/essays";
+import { safeSortTime } from "../lib/url-utils";
 
 interface ArchiveProps {
   initialEssays: Essay[];
@@ -38,8 +39,11 @@ export function Archive({ initialEssays, initialSearch = "" }: ArchiveProps) {
       groups[essay.year].push(essay);
     });
     return Object.entries(groups)
-      .map(([year, list]) => ({ year: Number(year), list }))
-      .sort((a, b) => b.year - a.year);
+      .map(([year, list]) => ({ 
+        year: Number(year), 
+        list: list.sort((a, b) => safeSortTime(a.month) - safeSortTime(b.month)) 
+      }))
+      .sort((a, b) => a.year - b.year);
   }, [filtered]);
 
   return (
