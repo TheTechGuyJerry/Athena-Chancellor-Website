@@ -41,9 +41,9 @@ export function Archive({ initialEssays, initialSearch = "" }: ArchiveProps) {
     return Object.entries(groups)
       .map(([year, list]) => ({ 
         year: Number(year), 
-        list: list.sort((a, b) => safeSortTime(a.month) - safeSortTime(b.month)) 
+        list: list.sort((a, b) => safeSortTime(b.month) - safeSortTime(a.month)) 
       }))
-      .sort((a, b) => a.year - b.year);
+      .sort((a, b) => b.year - a.year);
   }, [filtered]);
 
   return (
