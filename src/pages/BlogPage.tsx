@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getCMSData, incrementDownloadCount, DispatchPost } from "../lib/cms-store";
+import { getCMSData, incrementDownloadCount, incrementViewCount, DispatchPost } from "../lib/cms-store";
 import { formatDocumentDownloadUrl, stripHtml, safeIsoDate, safeSortTime } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
@@ -46,11 +46,12 @@ export function BlogPage() {
 
   useEffect(() => {
     if (selectedPost) {
+      incrementViewCount(selectedPost.id, selectedPost.category?.toLowerCase().includes('press') ? 'press_release' : 'insight');
     const ytId = extractYouTubeId(selectedPost.episodeUrl || selectedPost.pdfUrl);
     const thumbUrl = getEpisodeThumbnailUrl(selectedPost.episodeUrl, selectedPost.imageUrl);
       window.scrollTo(0, 0);
     }
-  }, [selectedPost]);
+  }, [selectedPost?.id]);
 
   const handleSelectPost = (post: DispatchPost | null) => {
     if (post) {

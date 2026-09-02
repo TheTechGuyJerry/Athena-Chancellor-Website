@@ -835,33 +835,60 @@ export async function deleteNewsletter(id: string): Promise<void> {
 }
 
 export async function incrementDownloadCount(id: string, type: 'essay' | 'dispatch' | 'insight' | 'press_release'): Promise<void> {
+  if (typeof window === "undefined") return;
+  const key = `download-${type}-${id}`;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, "1");
+
   try {
     const { doc, updateDoc, increment } = await import("firebase/firestore");
     const { db } = await import("./firebase");
-    
     if (!db) return;
 
     if (type === 'essay') {
-      const docRef = doc(db, "essays", id);
-      await updateDoc(docRef, { downloads: increment(1) });
+      await updateDoc(doc(db, "essays", id), { downloads: increment(1) });
     } else if (type === 'insight') {
-      const docRef = doc(db, "insights", id);
-      await updateDoc(docRef, { downloads: increment(1) });
+      await updateDoc(doc(db, "insights", id), { downloads: increment(1) });
     } else if (type === 'press_release') {
-      const docRef = doc(db, "press_releases", id);
-      await updateDoc(docRef, { downloads: increment(1) });
+      await updateDoc(doc(db, "press_releases", id), { downloads: increment(1) });
     } else {
-      // fallback if type is dispatch
       try {
-        const docRef = doc(db, "insights", id);
-        await updateDoc(docRef, { downloads: increment(1) });
+        await updateDoc(doc(db, "insights", id), { downloads: increment(1) });
       } catch (e) {
-        const docRef2 = doc(db, "press_releases", id);
-        await updateDoc(docRef2, { downloads: increment(1) });
+        await updateDoc(doc(db, "press_releases", id), { downloads: increment(1) });
       }
     }
   } catch (error) {
     console.error("Failed to increment download count", error);
+  }
+}
+
+export async function incrementViewCount(id: string, type: 'essay' | 'dispatch' | 'insight' | 'press_release'): Promise<void> {
+  if (typeof window === "undefined") return;
+  const key = `view-${type}-${id}`;
+  if (sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, "1");
+
+  try {
+    const { doc, updateDoc, increment } = await import("firebase/firestore");
+    const { db } = await import("./firebase");
+    if (!db) return;
+
+    if (type === 'essay') {
+      await updateDoc(doc(db, "essays", id), { views: increment(1) });
+    } else if (type === 'insight') {
+      await updateDoc(doc(db, "insights", id), { views: increment(1) });
+    } else if (type === 'press_release') {
+      await updateDoc(doc(db, "press_releases", id), { views: increment(1) });
+    } else {
+      try {
+        await updateDoc(doc(db, "insights", id), { views: increment(1) });
+      } catch (e) {
+        await updateDoc(doc(db, "press_releases", id), { views: increment(1) });
+      }
+    }
+  } catch (error) {
+    console.error("Failed to increment view count", error);
   }
 }
 

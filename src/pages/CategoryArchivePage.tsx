@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getCMSData, incrementDownloadCount, DispatchPost } from "../lib/cms-store";
+import { getCMSData, incrementDownloadCount, incrementViewCount, DispatchPost } from "../lib/cms-store";
 import { formatDocumentDownloadUrl, stripHtml, safeIsoDate, safeSortTime } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
@@ -61,9 +61,10 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
 
   useEffect(() => {
     if (selectedPost) {
+      incrementViewCount(selectedPost.id, selectedPost.category?.toLowerCase().includes('press') ? 'press_release' : 'insight');
       window.scrollTo(0, 0);
     }
-  }, [selectedPost]);
+  }, [selectedPost?.id]);
 
   const basePath = categoryMatch === "Insight" ? "/insights" : "/press-releases";
 

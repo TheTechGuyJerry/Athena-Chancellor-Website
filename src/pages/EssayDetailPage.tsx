@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { getCMSData } from "../lib/cms-store";
+import { getCMSData, incrementViewCount } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { EssayReader } from "../components/EssayReader";
 import { SEOHead } from "../components/SEOHead";
@@ -46,6 +46,12 @@ export function EssayDetailPage() {
 
     return null; // Don't fallback to essays[0] if specific slug requested
   }, [currentSlug, essays]);
+
+  useEffect(() => {
+    if (essay && essay.slug) {
+      incrementViewCount(essay.slug, 'essay');
+    }
+  }, [essay?.slug]);
 
   if (!essay) {
     if (!currentSlug && essays.length === 0) {
