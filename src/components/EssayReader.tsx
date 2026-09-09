@@ -105,11 +105,6 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
             <span>📥 {essay.downloads || 12} downloads</span>
           </div>
         </div>
-
-        {/* Lead Quote Callout */}
-        <div className="dark-reader-callout">
-          <p>{essay.summary}</p>
-        </div>
       </div>
 
       {/* Main Body Content */}

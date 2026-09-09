@@ -7,17 +7,21 @@ import { SITE_CONFIG } from "../lib/site-config";
 
 const institutions = [
   ["The Canon", "Essays and long-form writing on governance, leadership, and institutional development.", "/collections", "BROWSE WRITING"],
-  ["Athena Centre for Policy and Leadership", "Advancing policy thinking and developing ethical leadership in Nigeria.", "https://athenacentre.org/", "LEARN MORE"],
-  ["Mekaria Institute of Technology and Administration", "Building technical competence and leadership capacity. Obosi, Anambra State.", "/mekariamentorship", "LEARN MORE"],
-  ["ClearPath Media (Africa Explained)", "Interpreting what matters in Nigeria and across Africa — with clarity, depth, and disciplined analysis.", "https://clearpathmediatv.com/", "LEARN MORE"],
+  ["Athena Centre for Policy and Leadership", "Advancing policy thinking and developing ethical leadership in Nigeria.", "https://athenacentre.org/", "VISIT SITE"],
+  ["Mekaria Institute of Technology and Administration", "Building technical competence and leadership capacity. Obosi, Anambra State.", "https://mekaria.edu.ng/", "VISIT SITE"],
+  ["ClearPath Media (Africa Explained)", "Interpreting what matters in Nigeria and across Africa — with clarity, depth, and disciplined analysis.", "https://clearpathmedia.ng/", "VISIT SITE"],
+  ["Nneka Chidoka Outreach Programme", "Empowering communities through health outreach, cancer screenings, education, and grants.", "https://ncop.ng/", "VISIT SITE"],
 ];
 
 const roles = [
-  ["Chancellor", "Athena Centre for Policy and Leadership"],
-  ["Chairman", "Mekaria Institute of Technology and Administration, Obosi"],
-  ["Co-founder", "ClearPath Media (Africa Explained)"],
-  ["Patron", "Nneka Chidoka Outreach Programme"],
-  ["Chairman, Governing Board", "Nigerian Research and Education Network (NgREN)"],
+  { role: "Chancellor", org: "Athena Centre for Policy and Leadership", url: "https://athenacentre.org" },
+  { role: "Chairman", org: "Mekaria Institute of Technology and Administration, Obosi", url: "https://mekaria.edu.ng" },
+  { role: "Co-founder", org: "ClearPath Media (Africa Explained)", url: "https://clearpathmedia.ng" },
+  { role: "Patron", org: "Nneka Chidoka Outreach Programme", url: "https://ncop.ng" },
+  { role: "Chairman, Governing Board", org: "Nigerian Research and Education Network (NgREN)", url: "https://ngren.edu.ng" },
+  { role: "Executive Chairman", org: "Kadochi Investment Management Ltd / Advanced Drivers Training Institute", url: "" },
+  { role: "Director", org: "Inland Container Nigeria Limited", url: "https://inlandcontainers.net" },
+  { role: "Director", org: "Guinea Insurance PLC", url: "https://guineainsurance.com" },
 ];
 
 export function HomePage() {
@@ -142,7 +146,38 @@ export function HomePage() {
           <p>Institutions are where ideas are tested, applied, and sustained. Building them is slow, technical, and often unspectacular—which is precisely why it matters.</p>
         </div>
         <div className="role-list">
-          {roles.map(([role, place]) => <div key={role+place}><span>{role}</span><strong>{place}</strong></div>)}
+          {roles.map((item) => (
+            <div key={item.role + item.org}>
+              <span>{item.role}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <strong>{item.org}</strong>
+                {item.url && (
+                  <div>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline-link"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                        color: "var(--gold)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "4px",
+                      }}
+                    >
+                      Visit Site <span>↗</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -3,11 +3,14 @@ import { getCMSData } from "../lib/cms-store";
 import { SEOHead } from "../components/SEOHead";
 
 const roles = [
-  ["Chancellor", "Athena Centre for Policy and Leadership"],
-  ["Chairman", "Mekaria Institute of Technology and Administration, Obosi"],
-  ["Co-founder", "ClearPath Media (Africa Explained)"],
-  ["Patron", "Nneka Chidoka Outreach Programme"],
-  ["Chairman, Governing Board", "Nigerian Research and Education Network (NgREN)"],
+  { role: "Chancellor", org: "Athena Centre for Policy and Leadership", url: "https://athenacentre.org" },
+  { role: "Chairman", org: "Mekaria Institute of Technology and Administration, Obosi", url: "https://mekaria.edu.ng" },
+  { role: "Co-founder", org: "ClearPath Media (Africa Explained)", url: "https://clearpathmedia.ng" },
+  { role: "Patron", org: "Nneka Chidoka Outreach Programme", url: "https://ncop.ng" },
+  { role: "Chairman, Governing Board", org: "Nigerian Research and Education Network (NgREN)", url: "https://ngren.edu.ng" },
+  { role: "Executive Chairman", org: "Kadochi Investment Management Ltd / Advanced Drivers Training Institute", url: "" },
+  { role: "Director", org: "Inland Container Nigeria Limited", url: "https://inlandcontainers.net" },
+  { role: "Director", org: "Guinea Insurance PLC", url: "https://guineainsurance.com" },
 ];
 
 export function AboutPage() {
@@ -70,10 +73,36 @@ export function AboutPage() {
           <p>Each institution works in a different domain, while sharing the same concern: understanding how systems work and how they can work better.</p>
         </div>
         <div className="role-list">
-          {roles.map(([r, p]) => (
-            <div key={r + p}>
-              <span>{r}</span>
-              <strong>{p}</strong>
+          {roles.map((item) => (
+            <div key={item.role + item.org}>
+              <span>{item.role}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <strong>{item.org}</strong>
+                {item.url && (
+                  <div>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline-link"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                        color: "var(--gold)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "4px",
+                      }}
+                    >
+                      Visit Site <span>↗</span>
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
