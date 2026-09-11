@@ -71,6 +71,18 @@
         "lastLogin": { "type": "string", "description": "Last login date ISO" },
         "passwordRaw": { "type": "string", "description": "Optional login passcode" }
       }
+    },
+    "essay_comments": {
+      "title": "Essay Reader Comments",
+      "description": "Public comments left by readers on essays and canonical writings",
+      "fields": {
+        "id": { "type": "string", "description": "Comment ID" },
+        "essaySlug": { "type": "string", "description": "Target essay slug" },
+        "authorName": { "type": "string", "description": "Name of commenter" },
+        "authorEmail": { "type": "string", "description": "Optional email" },
+        "comment": { "type": "string", "description": "Comment text body" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of submission" }
+      }
     }
   }
 }

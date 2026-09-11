@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Essay } from "../lib/essays";
-import { getCMSData, incrementDownloadCount } from "../lib/cms-store";
+import { getCMSData, incrementDownloadCount, addEssayComment, getEssayComments, EssayComment } from "../lib/cms-store";
 import { formatDocumentDownloadUrl } from "../lib/url-utils";
 import { NewsletterForm } from "./NewsletterForm";
 
@@ -13,8 +13,51 @@ interface EssayReaderProps {
 
 export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProps) {
   const [copied, setCopied] = useState(false);
-  const [emailSub, setEmailSub] = useState("");
-  const [subDone, setSubDone] = useState(false);
+  const [comments, setComments] = useState<EssayComment[]>(() => getEssayComments(essay.slug));
+  const [authorName, setAuthorName] = useState("");
+  const [authorEmail, setAuthorEmail] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    setComments(getEssayComments(essay.slug));
+
+    const handleUpdate = () => {
+      setComments(getEssayComments(essay.slug));
+    };
+
+    window.addEventListener("osita_cms_updated", handleUpdate);
+    return () => {
+      window.removeEventListener("osita_cms_updated", handleUpdate);
+    };
+  }, [essay.slug]);
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      await addEssayComment({
+        essaySlug: essay.slug,
+        authorName: authorName.trim() || "Anonymous Reader",
+        authorEmail: authorEmail.trim(),
+        comment: commentText.trim(),
+      });
+      setCommentText("");
+      setAuthorName("");
+      setAuthorEmail("");
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 4000);
+    } catch (err) {
+      setSubmitError("Failed to submit comment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDownloadPDF = () => {
     if (essay.pdfUrl && essay.pdfUrl !== "#" && essay.pdfUrl.trim() !== "") {
@@ -101,7 +144,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
           <span className="dark-reader-date-tag">Published on {essay.month}</span>
           <div className="dark-reader-stats">
             <span>👁 {essay.views || 48} views</span>
-            <span>💬 0 comments</span>
+            <span>💬 {comments.length} {comments.length === 1 ? "comment" : "comments"}</span>
             <span>📥 {essay.downloads || 12} downloads</span>
           </div>
         </div>
@@ -245,6 +288,86 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
           <button className="share-btn copy" onClick={handleCopyLink}>
             <span className="share-icon">🔗</span> {copied ? "Copied!" : "Copy link"}
           </button>
+        </div>
+      </div>
+
+      {/* Comments & Discussion Section */}
+      <div className="dark-reader-comments-section">
+        <div className="comments-header">
+          <h3>Comments &amp; Discussion ({comments.length})</h3>
+        </div>
+
+        {submitSuccess && (
+          <div style={{ padding: "12px 16px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: "8px", fontSize: "14px", marginBottom: "20px" }}>
+            ✓ Thank you! Your comment has been posted successfully.
+          </div>
+        )}
+
+        {submitError && (
+          <div style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: "8px", fontSize: "14px", marginBottom: "20px" }}>
+            {submitError}
+          </div>
+        )}
+
+        <form onSubmit={handlePostComment} className="comment-form">
+          <div className="comment-form-row">
+            <input
+              type="text"
+              placeholder="Your Name (e.g., Dr. Amina Bello)"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              className="comment-input"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Your Email (optional, kept private)"
+              value={authorEmail}
+              onChange={(e) => setAuthorEmail(e.target.value)}
+              className="comment-input"
+            />
+          </div>
+          <textarea
+            placeholder="Share your thoughts, perspectives, or questions on this essay..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="comment-textarea"
+            rows={4}
+            required
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting || !commentText.trim()}
+            className="comment-submit-btn"
+          >
+            {isSubmitting ? "Posting..." : "Post Comment"}
+          </button>
+        </form>
+
+        <div className="comments-list">
+          {comments.length === 0 ? (
+            <div className="no-comments-msg">
+              No comments yet. Be the first to share your thoughts on this essay!
+            </div>
+          ) : (
+            comments.map((c) => (
+              <div key={c.id} className="comment-card">
+                <div className="comment-card-header">
+                  <span className="comment-author">{c.authorName}</span>
+                  <span className="comment-date">
+                    {new Date(c.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <p className="comment-body">{c.comment}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

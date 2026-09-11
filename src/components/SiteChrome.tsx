@@ -212,11 +212,6 @@ export function SiteFooter() {
                   Cookies Policy
                 </Link>
               </li>
-              <li>
-                <Link to="/admin" style={{ color: "#a8863c", fontSize: "14px", fontWeight: "bold" }}>
-                  CMS Admin Panel →
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

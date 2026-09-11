@@ -124,6 +124,15 @@ export type CMSSettings = {
   cvUrl?: string;
 };
 
+export type EssayComment = {
+  id: string;
+  essaySlug: string;
+  authorName: string;
+  authorEmail?: string;
+  comment: string;
+  createdAt: string;
+};
+
 export type CMSData = {
   essays: Essay[];
   insights: DispatchPost[];
@@ -134,6 +143,7 @@ export type CMSData = {
   newsletters: NewsletterItem[];
   adminUsers: AdminUser[];
   settings: CMSSettings;
+  comments: EssayComment[];
 };
 
 const initialDispatches: DispatchPost[] = [];
@@ -277,7 +287,8 @@ let inMemoryData: CMSData = cachedInitialData || {
   subscribers: initialSubscribers,
   newsletters: initialNewsletters,
   adminUsers: initialAdminUsers,
-  settings: initialSettings
+  settings: initialSettings,
+  comments: []
 };
 
 let isInitializingPromise: Promise<CMSData> | null = null;
@@ -380,6 +391,14 @@ export async function initCMSStore(): Promise<CMSData> {
         await setDoc(settingsRef, initialSettings);
       }
 
+      // Fetch Essay Comments
+      const commentsSnap = await getDocs(collection(db, "essay_comments"));
+      let fetchedComments: EssayComment[] = [];
+      if (!commentsSnap.empty) {
+        fetchedComments = commentsSnap.docs.map(docSnap => docSnap.data() as EssayComment);
+        fetchedComments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+
       inMemoryData = {
         essays: fetchedEssays,
         insights: fetchedInsights,
@@ -389,7 +408,8 @@ export async function initCMSStore(): Promise<CMSData> {
         subscribers: fetchedSubscribers,
         adminUsers: fetchedAdminUsers,
         settings: fetchedSettings,
-        newsletters: fetchedNewsletters
+        newsletters: fetchedNewsletters,
+        comments: fetchedComments
       };
 
       notifyCMSListeners();
@@ -450,6 +470,13 @@ function setupRealtimeListeners() {
         notifyCMSListeners();
       }
     }, (err) => console.error("Realtime settings sync error:", err));
+
+    onSnapshot(collection(db, "essay_comments"), (snap) => {
+      const items = snap.docs.map(d => d.data() as EssayComment);
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      inMemoryData.comments = items;
+      notifyCMSListeners();
+    }, (err) => console.error("Realtime essay_comments sync error:", err));
   } catch (e) {
     console.error("Could not bind Firestore realtime listeners:", e);
   }
@@ -928,4 +955,50 @@ export async function deleteAdminUser(id: string): Promise<void> {
     console.error("Backend delete failure for admin user:", err);
     throw new Error(`Server delete failed: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+export async function addEssayComment(commentData: {
+  essaySlug: string;
+  authorName: string;
+  authorEmail?: string;
+  comment: string;
+}): Promise<EssayComment> {
+  const newComment: EssayComment = {
+    id: `comment-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    essaySlug: commentData.essaySlug,
+    authorName: commentData.authorName.trim() || "Anonymous Reader",
+    authorEmail: commentData.authorEmail?.trim() || "",
+    comment: commentData.comment.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await setDoc(doc(db, "essay_comments", newComment.id), newComment);
+  } catch (err) {
+    console.warn("Failed to write comment to Firestore, saving locally:", err);
+  }
+
+  if (!inMemoryData.comments) inMemoryData.comments = [];
+  inMemoryData.comments.unshift(newComment);
+  notifyCMSListeners();
+
+  return newComment;
+}
+
+export function getEssayComments(essaySlug: string): EssayComment[] {
+  if (!inMemoryData.comments) return [];
+  return inMemoryData.comments.filter((c) => c.essaySlug === essaySlug);
+}
+
+export async function deleteEssayComment(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "essay_comments", id));
+  } catch (err) {
+    console.warn("Failed to delete comment from Firestore:", err);
+  }
+
+  if (inMemoryData.comments) {
+    inMemoryData.comments = inMemoryData.comments.filter((c) => c.id !== id);
+  }
+  notifyCMSListeners();
 }
