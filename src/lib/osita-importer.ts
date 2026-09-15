@@ -9,7 +9,7 @@ export type OsitaInsightImportItem = {
   publicationDate: string;
   featuredImage?: string;
   episodeUrl: string;
-  category: "Osita Insight";
+  category: "OsitaInsight";
   source: "ClearPath Media";
   isAlreadyImported?: boolean;
 };
@@ -103,7 +103,7 @@ export async function fetchOsitaInsightsFromYouTube(
             publicationDate,
             featuredImage,
             episodeUrl,
-            category: "Osita Insight",
+            category: "OsitaInsight",
             source: "ClearPath Media",
           });
         }
@@ -211,7 +211,7 @@ export async function fetchOsitaInsightsFromClearPath(): Promise<OsitaInsightImp
         publicationDate,
         featuredImage,
         episodeUrl,
-        category: "Osita Insight",
+        category: "OsitaInsight",
         source: "ClearPath Media",
       });
     }

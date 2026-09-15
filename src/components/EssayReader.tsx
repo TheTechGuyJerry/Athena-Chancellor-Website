@@ -4,6 +4,7 @@ import { Essay } from "../lib/essays";
 import { getCMSData, incrementDownloadCount, addEssayComment, getEssayComments, EssayComment } from "../lib/cms-store";
 import { formatDocumentDownloadUrl } from "../lib/url-utils";
 import { NewsletterForm } from "./NewsletterForm";
+import { ShareDropdown } from "./ShareDropdown";
 
 interface EssayReaderProps {
   essay: Essay;
@@ -118,14 +119,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
         )}
 
         <div className="dark-reader-tags">
-          <span className="dark-reader-badge category">{essay.category.toLowerCase()}</span>
-          <span className="dark-reader-badge doc-type">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            article.pdf
-          </span>
+          <ShareDropdown title={essay.title} />
         </div>
       </div>
 

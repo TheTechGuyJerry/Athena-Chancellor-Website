@@ -6,6 +6,7 @@ import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
 import { extractYouTubeId, getEpisodeThumbnailUrl } from "../lib/osita-importer";
 import { SEOHead } from "../components/SEOHead";
+import { ShareDropdown } from "../components/ShareDropdown";
 
 export function CategoryArchivePage({ title, description, categoryMatch }: { title: string; description: string; categoryMatch: string }) {
   const { slug } = useParams();
@@ -105,10 +106,11 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
         <div className="wrap-wide">
           {isVideoLibraryLayout ? (
             <div>
-              <div style={{ marginBottom: "24px" }}>
+              <div style={{ marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button onClick={() => handleSelectPost(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "14px", color: "#64748b", display: "flex", alignItems: "center", gap: "8px", padding: 0 }}>
                    ← Back to {title}
                 </button>
+                <ShareDropdown title={selectedPost.title} url={selectedPost.episodeUrl || window.location.href} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
                 <div className="flex flex-col gap-6">
@@ -133,16 +135,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                   <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-8">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
                       <h1 className="font-serif text-2xl text-slate-900 leading-snug m-0">{selectedPost.title}</h1>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(window.location.href);
-                          alert("Link copied!");
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-900 hover:bg-slate-50 transition-colors whitespace-nowrap"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                        COPY WEB LINK
-                      </button>
+                      <ShareDropdown title={selectedPost.title} url={selectedPost.episodeUrl || window.location.href} />
                     </div>
                     <div className="text-[15px] leading-relaxed text-slate-700">
                       {(() => {
@@ -215,9 +208,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                   ← Back to {title}
                 </button>
                 <div className="dark-reader-tags">
-                  <span className="dark-reader-badge category" style={{ background: "#0F172A", color: "#fff", padding: "4px 12px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase" }}>
-                    {selectedPost.category}
-                  </span>
+                  <ShareDropdown title={selectedPost.title} url={selectedPost.episodeUrl || window.location.href} />
                 </div>
               </div>
 
@@ -413,18 +404,7 @@ export function CategoryArchivePage({ title, description, categoryMatch }: { tit
                     {/* Top Row: Date + Share Button */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", fontSize: "13px", color: "#64748b" }}>
                       <span>{post.date}</span>
-                      <button
-                        title="Share Episode"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const url = post.episodeUrl || window.location.href;
-                          navigator.clipboard.writeText(url);
-                          alert("Episode link copied to clipboard!");
-                        }}
-                        style={{ background: "none", border: 0, cursor: "pointer", color: "#64748b", fontSize: "16px", padding: "2px" }}
-                      >
-                        🔗
-                      </button>
+                      <ShareDropdown title={post.title} url={post.episodeUrl || (typeof window !== "undefined" ? window.location.origin + "/insights/" + (post.slug || post.id) : "")} />
                     </div>
 
                     {/* Title */}

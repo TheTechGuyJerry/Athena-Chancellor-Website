@@ -531,7 +531,7 @@ export function AdminPage() {
       slug,
       title: editingInsight.title,
       date: editingInsight.date || new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-      category: editingInsight.category || "Osita Insight",
+      category: editingInsight.category || "OsitaInsight",
       summary: editingInsight.summary,
       content: contentArray.length > 0 ? contentArray : [editingInsight.summary],
       published: editingInsight.published !== false,
@@ -1210,7 +1210,7 @@ export function AdminPage() {
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <h2>Osita Insights Management ({insights.length})</h2>
+              <h2>OsitaInsight Management ({insights.length})</h2>
               <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <button
                   className="gold-button"
@@ -1218,7 +1218,7 @@ export function AdminPage() {
                   onClick={handlePurgeAllOsitaInsights}
                   disabled={isPurgingInsights}
                 >
-                  {isPurgingInsights ? "⏳ Deleting..." : "🗑️ Clear Osita Insights"}
+                  {isPurgingInsights ? "⏳ Deleting..." : "🗑️ Clear OsitaInsight"}
                 </button>
 
                 <button
@@ -1227,14 +1227,14 @@ export function AdminPage() {
                   onClick={handleSyncOsitaInsights}
                   disabled={isScrapingInsights}
                 >
-                  {isScrapingInsights ? "🔍 Fetching ClearPath Media..." : "🔄 Sync Osita Insights"}
+                  {isScrapingInsights ? "🔍 Fetching ClearPath Media..." : "🔄 Sync OsitaInsight"}
                 </button>
 
                 <button
                   className="gold-button"
                   onClick={() => {
                     setEditingInsight({
-                      category: "Osita Insight",
+                      category: "OsitaInsight",
                       published: true,
                       author: "Osita Chidoka",
                     });
@@ -1272,7 +1272,7 @@ export function AdminPage() {
                   )}
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: "12px", marginBottom: "8px", fontSize: "12px", flexWrap: "wrap" }}>
-                      <span style={{ color: "var(--gold)", fontWeight: "bold" }}>{item.category || "Osita Insight"}</span>
+                      <span style={{ color: "var(--gold)", fontWeight: "bold" }}>{item.category || "OsitaInsight"}</span>
                       <span style={{ color: "var(--muted)" }}>{item.date}</span>
                       {item.source && <span style={{ color: "#0284c7", fontWeight: "600" }}>{item.source}</span>}
                       <span
@@ -2330,7 +2330,7 @@ export function AdminPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "grid", placeItems: "center", padding: "20px" }}>
           <div style={{ background: "#fff", width: "100%", maxWidth: "700px", borderRadius: "8px", padding: "32px", maxHeight: "90vh", overflowY: "auto" }}>
             <h2 style={{ fontFamily: "Georgia, serif", marginBottom: "20px" }}>
-              {editingInsight?.id ? "Edit Insight" : "New Osita Insight"}
+              {editingInsight?.id ? "Edit Insight" : "New OsitaInsight"}
             </h2>
             <form onSubmit={handleSaveInsight}>
               <div style={{ marginBottom: "16px" }}>
@@ -2349,7 +2349,7 @@ export function AdminPage() {
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "4px" }}>Category</label>
                   <input
                     type="text"
-                    value={editingInsight?.category || "Osita Insight"}
+                    value={editingInsight?.category || "OsitaInsight"}
                     onChange={(e) => setEditingInsight({ ...editingInsight, category: e.target.value })}
                     style={{ width: "100%", padding: "10px", border: "1px solid var(--line)", borderRadius: "4px" }}
                   />
@@ -2646,7 +2646,7 @@ export function AdminPage() {
             {/* Modal Header */}
             <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc" }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: "20px", fontFamily: "Georgia, serif", color: "var(--ink)" }}>Import Osita Insights from ClearPath Media</h3>
+                <h3 style={{ margin: 0, fontSize: "20px", fontFamily: "Georgia, serif", color: "var(--ink)" }}>Import OsitaInsight from ClearPath Media</h3>
                 <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--muted)" }}>
                   Detected {scrapedInsights.length} episode(s) from ClearPath Media. ({scrapedInsights.filter(i => !i.isAlreadyImported).length} new detected)
                 </p>

@@ -645,7 +645,7 @@ export async function importOsitaInsightsToStore(
     publicationDate: string;
     featuredImage: string;
     episodeUrl: string;
-    category: "Osita Insight";
+    category: "OsitaInsight";
     source: "ClearPath Media";
   }>
 ): Promise<number> {
@@ -664,7 +664,7 @@ export async function importOsitaInsightsToStore(
       slug: slug || `osita-insight-${Date.now()}`,
       title: item.title,
       date: item.publicationDate || new Date().toISOString().split("T")[0],
-      category: "Osita Insight",
+      category: "OsitaInsight",
       summary: item.description,
       content: item.description.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0),
       published: true,

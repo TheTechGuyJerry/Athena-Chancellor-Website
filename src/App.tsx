@@ -34,8 +34,8 @@ export default function App() {
           <Route path="/subscribe/continue" element={<SubscribeContinuePage />} />
           <Route path="/press-releases" element={<CategoryArchivePage title="Press Releases" description="Official press statements and engagement updates from Chief Osita Chidoka." categoryMatch="Press Release" />} />
           <Route path="/press-releases/:slug" element={<CategoryArchivePage title="Press Releases" description="Official press statements and engagement updates from Chief Osita Chidoka." categoryMatch="Press Release" />} />
-          <Route path="/insights" element={<CategoryArchivePage title="Osita Insights" description="Focused analysis and commentary on governance and leadership." categoryMatch="Insight" />} />
-          <Route path="/insights/:slug" element={<CategoryArchivePage title="Osita Insights" description="Focused analysis and commentary on governance and leadership." categoryMatch="Insight" />} />
+          <Route path="/insights" element={<CategoryArchivePage title="OsitaInsight" description="Focused analysis and commentary on governance and leadership." categoryMatch="Insight" />} />
+          <Route path="/insights/:slug" element={<CategoryArchivePage title="OsitaInsight" description="Focused analysis and commentary on governance and leadership." categoryMatch="Insight" />} />
           <Route path="/termsofservice" element={<TermsPage />} />
           <Route path="/privacypolicy" element={<PrivacyPage />} />
           <Route path="/cookiespolicy" element={<CookiesPage />} />

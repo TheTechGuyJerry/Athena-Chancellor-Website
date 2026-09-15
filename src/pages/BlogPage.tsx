@@ -4,6 +4,7 @@ import { getCMSData, incrementDownloadCount, incrementViewCount, DispatchPost } 
 import { formatDocumentDownloadUrl, stripHtml, safeIsoDate, safeSortTime } from "../lib/url-utils";
 import { NewsletterForm } from "../components/NewsletterForm";
 import { CopyLinkButton } from "../components/CopyLinkButton";
+import { ShareDropdown } from "../components/ShareDropdown";
 import { SEOHead } from "../components/SEOHead";
 import { getEpisodeThumbnailUrl, extractYouTubeId } from "../lib/osita-importer";
 
@@ -163,6 +164,7 @@ export function BlogPage() {
             )}
 
             <div style={{ marginTop: "24px", display: "flex", gap: "16px", alignItems: "center" }}>
+              <ShareDropdown title={selectedPost.title} url={window.location.href} />
               <CopyLinkButton url={window.location.href} />
             </div>
 

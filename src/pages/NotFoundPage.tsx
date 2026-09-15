@@ -26,7 +26,7 @@ export function NotFoundPage({ message = "The page you are looking for does not 
           Explore Essays
         </Link>
         <Link to="/insights" className="outline-button">
-          View Osita Insights
+          View OsitaInsight
         </Link>
       </div>
     </main>
