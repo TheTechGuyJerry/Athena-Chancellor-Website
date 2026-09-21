@@ -81,3 +81,31 @@ export function safeSortTime(dateStr: string | undefined | null): number {
   if (isNaN(d.getTime())) return 0;
   return d.getTime();
 }
+
+/**
+ * Sanitizes and formats an essay's month/date string so that duplicate years
+ * (e.g., "27 August 2026 2026") never occur now or in future essays.
+ */
+export function formatEssayDate(monthStr: string | undefined | null, yearVal?: number | string): string {
+  if (!monthStr) {
+    return yearVal ? String(yearVal) : "";
+  }
+
+  // 1. Clean up duplicate 4-digit years (e.g., "2026 2026" or "2026, 2026")
+  let clean = monthStr.replace(/\b(\d{4})\b(\s*[,;.-]?\s*\b\1\b)+/g, "$1").trim();
+
+  // 2. Remove any extra year occurrences if yearVal is specified
+  if (yearVal) {
+    const yStr = String(yearVal).trim();
+    const regex = new RegExp(`(\\b${yStr}\\b)(\\s*[,;.-]?\\s*\\b${yStr}\\b)+`, "g");
+    clean = clean.replace(regex, "$1").trim();
+  }
+
+  // 3. If clean still has no 4-digit year and yearVal is provided, append the year cleanly
+  if (yearVal && !/\b\d{4}\b/.test(clean)) {
+    clean = `${clean} ${yearVal}`;
+  }
+
+  return clean;
+}
+

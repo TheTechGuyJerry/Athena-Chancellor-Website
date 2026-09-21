@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Essay } from "../lib/essays";
-import { safeSortTime } from "../lib/url-utils";
+import { safeSortTime, formatEssayDate } from "../lib/url-utils";
 
 interface ArchiveProps {
   initialEssays: Essay[];
@@ -111,7 +111,7 @@ export function Archive({ initialEssays, initialSearch = "" }: ArchiveProps) {
                         <span className="essay-card-category">{essay.category}</span>
                       </div>
                       <div className="essay-card-date-pdf">
-                        <span className="essay-card-date">{essay.month}</span>
+                        <span className="essay-card-date">{formatEssayDate(essay.month, essay.year)}</span>
                       </div>
                     </div>
 

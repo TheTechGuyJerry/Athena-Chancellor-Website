@@ -1,5 +1,12 @@
 import { essays as initialEssays, Essay } from "./essays";
-import { formatDocumentDownloadUrl, slugify } from "./url-utils";
+import { formatDocumentDownloadUrl, slugify, formatEssayDate } from "./url-utils";
+
+function sanitizeEssay(essay: Essay): Essay {
+  return {
+    ...essay,
+    month: formatEssayDate(essay.month, essay.year)
+  };
+}
 import { db } from "./firebase";
 import {
   collection,
@@ -278,8 +285,11 @@ function saveCachedCMSData(data: CMSData) {
 
 const cachedInitialData = loadCachedCMSData();
 
-let inMemoryData: CMSData = cachedInitialData || {
-  essays: initialEssays,
+let inMemoryData: CMSData = (cachedInitialData ? {
+  ...cachedInitialData,
+  essays: (cachedInitialData.essays || []).map(sanitizeEssay)
+} : null) || {
+  essays: initialEssays.map(sanitizeEssay),
   insights: initialInsights,
   dispatches: initialDispatches,
   pressReleases: initialPressReleases,
@@ -316,13 +326,14 @@ export async function initCMSStore(): Promise<CMSData> {
       const essaysSnap = await getDocs(collection(db, "essays"));
       let fetchedEssays: Essay[] = [];
       if (!essaysSnap.empty) {
-        fetchedEssays = essaysSnap.docs.map(docSnap => docSnap.data() as Essay);
+        fetchedEssays = essaysSnap.docs.map(docSnap => sanitizeEssay(docSnap.data() as Essay));
       } else {
         console.log("Firestore essays collection is empty. Migrating initial essays to backend...");
         for (const essay of initialEssays) {
-          await setDoc(doc(db, "essays", essay.slug), essay);
+          const sEssay = sanitizeEssay(essay);
+          await setDoc(doc(db, "essays", essay.slug), sEssay);
         }
-        fetchedEssays = [...initialEssays];
+        fetchedEssays = initialEssays.map(sanitizeEssay);
       }
 
       // Fetch Insights from 'insights' collection
@@ -431,7 +442,7 @@ function setupRealtimeListeners() {
   try {
     onSnapshot(collection(db, "essays"), (snap) => {
       if (!snap.empty) {
-        inMemoryData.essays = snap.docs.map(d => d.data() as Essay);
+        inMemoryData.essays = snap.docs.map(d => sanitizeEssay(d.data() as Essay));
         notifyCMSListeners();
       }
     }, (err) => console.error("Realtime essays sync error:", err));
@@ -501,7 +512,7 @@ export async function saveEssay(essay: Essay): Promise<void> {
   if (essay.pdfUrl && essay.pdfUrl !== "#") {
     essay.pdfUrl = formatDocumentDownloadUrl(essay.pdfUrl);
   }
-  const cleanDoc = JSON.parse(JSON.stringify(essay));
+  const cleanDoc = sanitizeEssay(JSON.parse(JSON.stringify(essay)));
   try {
     // Write to Firestore server FIRST
     await setDoc(doc(db, "essays", essay.slug), cleanDoc);

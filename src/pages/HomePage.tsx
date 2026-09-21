@@ -4,6 +4,7 @@ import { getCMSData } from "../lib/cms-store";
 import { Essay } from "../lib/essays";
 import { SEOHead } from "../components/SEOHead";
 import { SITE_CONFIG } from "../lib/site-config";
+import { formatEssayDate } from "../lib/url-utils";
 
 const institutions = [
   ["The Canon", "Essays and long-form writing on governance, leadership, and institutional development.", "/collections", "BROWSE WRITING"],
@@ -83,7 +84,7 @@ export function HomePage() {
             <p className="eyebrow">Featured essay</p>
             <h2>{featuredEssay ? featuredEssay.title : "From Alibi to Agency"}</h2>
             <p style={{ fontSize: "14px", color: "var(--gold)", margin: "10px 0", fontWeight: "bold" }}>
-              {featuredEssay ? `${featuredEssay.month} ${featuredEssay.year}` : "July 2026"}
+              {featuredEssay ? formatEssayDate(featuredEssay.month, featuredEssay.year) : "July 2026"}
             </p>
           </div>
           <div style={{ flex: 1.6 }}>

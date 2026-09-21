@@ -8,7 +8,7 @@ import { collection, getDocs } from "firebase/firestore";
 
 import { Essay } from "../lib/essays";
 import { compressImageToBase64 } from "../lib/image-utils";
-import { formatDocumentDownloadUrl } from "../lib/url-utils";
+import { formatDocumentDownloadUrl, formatEssayDate } from "../lib/url-utils";
 
 type CmsAuthPhase =
   | "checking"
@@ -467,11 +467,15 @@ export function AdminPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "");
 
+    const essayYear = Number(editingEssay.year) || new Date().getFullYear();
+    const rawMonth = editingEssay.month || new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const formattedMonth = formatEssayDate(rawMonth, essayYear);
+
     const newEssay: Essay = {
       slug,
-      year: Number(editingEssay.year) || new Date().getFullYear(),
+      year: essayYear,
       title: editingEssay.title,
-      month: editingEssay.month || new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      month: formattedMonth,
       category: (editingEssay.category || "POLITICS").toUpperCase(),
       summary: editingEssay.summary,
       content: contentArray.length > 0 ? contentArray : [editingEssay.summary],
@@ -1133,7 +1137,7 @@ export function AdminPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "8px", fontSize: "12px" }}>
                       <span style={{ color: "var(--gold)", fontWeight: "bold" }}>{essay.category}</span>
-                      <span style={{ color: "var(--muted)" }}>{essay.month} ({essay.year})</span>
+                      <span style={{ color: "var(--muted)" }}>{formatEssayDate(essay.month, essay.year)}</span>
                       {essay.imageUrl ? (
                         <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "4px", fontWeight: "bold", fontSize: "11px" }}>
                           🖼️ Cover Image Attached

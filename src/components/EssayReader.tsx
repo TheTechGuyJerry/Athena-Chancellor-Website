@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Essay } from "../lib/essays";
 import { getCMSData, incrementDownloadCount, addEssayComment, getEssayComments, EssayComment } from "../lib/cms-store";
-import { formatDocumentDownloadUrl } from "../lib/url-utils";
+import { formatDocumentDownloadUrl, formatEssayDate } from "../lib/url-utils";
 import { NewsletterForm } from "./NewsletterForm";
 import { ShareDropdown } from "./ShareDropdown";
 
@@ -68,7 +68,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
       return;
     }
 
-    const textContent = `${essay.title}\nBy Chief Osita Chidoka\nDate: ${essay.month}\nCategory: ${essay.category}\n\n${essay.summary}\n\n${essay.content.join("\n\n")}`;
+    const textContent = `${essay.title}\nBy Chief Osita Chidoka\nDate: ${formatEssayDate(essay.month, essay.year)}\nCategory: ${essay.category}\n\n${essay.summary}\n\n${essay.content.join("\n\n")}`;
     const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -135,7 +135,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
       {/* Header Info */}
       <div className="dark-reader-header">
         <div className="dark-reader-meta-row">
-          <span className="dark-reader-date-tag">Published on {essay.month}</span>
+          <span className="dark-reader-date-tag">Published on {formatEssayDate(essay.month, essay.year)}</span>
           <div className="dark-reader-stats">
             <span>👁 {essay.views || 48} views</span>
             <span>💬 {comments.length} {comments.length === 1 ? "comment" : "comments"}</span>
@@ -378,7 +378,7 @@ export function EssayReader({ essay, onClose, isModal = false }: EssayReaderProp
                 <span className="related-tag">{rel.category.toLowerCase()}</span>
                 <h3 className="related-title">{rel.title}</h3>
                 <p className="related-excerpt">{rel.summary}</p>
-                <span className="related-date">{rel.month}</span>
+                <span className="related-date">{formatEssayDate(rel.month, rel.year)}</span>
               </div>
             </Link>
           ))}
