@@ -21,8 +21,8 @@ export function PressInquiryPage() {
           <p>All requests are reviewed individually. Please provide enough context to enable a considered response.</p>
           <hr />
           <p className="eyebrow">Direct contact</p>
-          <p>Contact Person: Sani</p>
-          <a href="mailto:occhidoka@gmail.com">occhidoka@gmail.com</a>
+          <p>Contact Person: Sanni Abdullahi</p>
+          <a href="mailto:sanniabdullahi@athenacentre.org">sanniabdullahi@athenacentre.org</a>
         </div>
         <img src="/images/osita-panel.jpg" alt="Osita Chidoka at a media engagement" />
       </section>

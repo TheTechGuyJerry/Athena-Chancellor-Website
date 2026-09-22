@@ -195,7 +195,7 @@ export function HomePage() {
         <p>For media inquiries, speaking invitations, or mentorship enquiries.</p>
         <div className="button-row">
           <Link className="gold-button" to="/pressinquiry">Press inquiry</Link>
-          <a className="outline-button" href="mailto:enquiries@ositachidoka.com">Email directly</a>
+          <a className="outline-button" href="mailto:sanniabdullahi@athenacentre.org">Email directly</a>
         </div>
       </section>
     </main>

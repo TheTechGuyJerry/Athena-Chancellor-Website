@@ -214,7 +214,7 @@ const initialAdminUsers: AdminUser[] = [
 
 const initialSettings: CMSSettings = {
   siteTitle: "Osita Chidoka — Public Servant, Writer & Institution Builder",
-  contactEmail: "jerryagbedun@gmail.com",
+  contactEmail: "sanniabdullahi@athenacentre.org",
   adminEmail: "jerryagbedun@gmail.com",
   adminPasswordHash: "OsitaAdmin2026!",
   adminPasswordRaw: "OsitaAdmin2026!",
